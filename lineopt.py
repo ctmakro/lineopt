@@ -14,20 +14,24 @@ def perf_debug():
 parallel = True
 # parallel = False
 
-ncpu = 8
-from llll import MultithreadedMapper, PoolMaster
-
-mm = MultithreadedMapper(nthread=ncpu)
-pm = PoolMaster('lineenv.py', is_filename=True, nproc=ncpu)
-
 if parallel:
+    from llll import MultithreadedMapper, PoolMaster
+    pm = PoolMaster('lineenv.py', is_filename=True)
+
     def to_optimize(v):
-        return pm.call(v, mc.indices)
+        return pm.call(v)
+
+    vv = mc.to_vec()
+    for i in range(100):
+        pm.call(vv, mc.indices) # assure indices propagated to all slaves
 
 # minimization
 def minimize_cem(fun, x, iters,
     survival=0.5,
-    mutation=3.0, popsize=100, cb=None, mating=False):
+    mutation=3.0, popsize=100, cb=None,
+    mating=False,
+    parallelizable=False):
+
     initial_mean = x
     initial_stddev = np.ones_like(initial_mean)*mutation
 
@@ -57,6 +61,12 @@ def minimize_cem(fun, x, iters,
 
     trace = []
 
+    if parallelizable == False:
+        pass
+    else:
+        from llll import MultithreadedMapper
+        mm = MultithreadedMapper()
+
     for i in range(iters):
         print('{}/{}'.format(i+1,iters))
         import time
@@ -64,7 +74,7 @@ def minimize_cem(fun, x, iters,
 
         # evaluate fitness for all of population
 
-        if not parallel:
+        if not parallelizable:
             fitnesses = [fun(v) for v in population]
         else:
             fitnesses = mm.map(fun, population)
@@ -131,7 +141,7 @@ def minimize_cem(fun, x, iters,
 
     return {'x':best, 'trace':trace}
 
-def run_cem_opt(it=200):
+def run_cem_opt(it=2000):
     initial_x = mc.to_vec()
 
     def callback(dic):
@@ -141,22 +151,31 @@ def run_cem_opt(it=200):
         show()
 
     results = [
+    # minimize_cem(
+    #     to_optimize, initial_x,
+    #     iters = it,
+    #     mutation = 3.0,
+    #     popsize=100,
+    #     survival = 0.10,
+    #     cb = callback,
+    # ),
     minimize_cem(
         to_optimize, initial_x,
         iters = it,
-        mutation = 3.0,
-        popsize=100,
-        survival = 0.25,
+        mutation = 2.0,
+        popsize = 100,
+        survival = 0.10,
         cb = callback,
+        parallelizable = parallel,
     ),
-    minimize_cem(
-        to_optimize, initial_x,
-        iters = it,
-        mutation = 3.0,
-        popsize=100,
-        survival = 0.15,
-        cb = callback,
-    ),
+    # minimize_cem(
+    #     to_optimize, initial_x,
+    #     iters = it,
+    #     mutation = 4.0,
+    #     popsize=100,
+    #     survival = 0.10,
+    #     cb = callback,
+    # ),
     # minimize_cem(
     #     to_optimize, initial_x,
     #     iters = it,
@@ -165,24 +184,24 @@ def run_cem_opt(it=200):
     #     survival = 0.1,
     #     cb = callback,
     # ),
-    minimize_cem(
-        to_optimize, initial_x,
-        iters = it,
-        mutation = 1.0,
-        popsize=100,
-        survival = 0.5,
-        cb = callback,
-        mating=True,
-    ),
-    minimize_cem(
-        to_optimize, initial_x,
-        iters = it,
-        mutation = 0.5,
-        popsize=100,
-        survival = 0.5,
-        cb = callback,
-        mating=True,
-    ),
+    # minimize_cem(
+    #     to_optimize, initial_x,
+    #     iters = it,
+    #     mutation = 1.0,
+    #     popsize=100,
+    #     survival = 0.5,
+    #     cb = callback,
+    #     mating=True,
+    # ),
+    # minimize_cem(
+    #     to_optimize, initial_x,
+    #     iters = it,
+    #     mutation = 0.5,
+    #     popsize=100,
+    #     survival = 0.5,
+    #     cb = callback,
+    #     mating=True,
+    # ),
     # minimize_cem(
     #     to_optimize, initial_x,
     #     iters = it,
@@ -206,11 +225,12 @@ def run_cem_opt(it=200):
     # mc.from_vec(x1)
     # show()
 
-    from matplotlib import pyplot as plt
-    for i,res in enumerate(results):
-        plt.plot([d['mean_fitness'] for d in res['trace']], label = str(i))
-    plt.legend()
-    plt.show()
+    if 0:
+        from matplotlib import pyplot as plt
+        for i,res in enumerate(results):
+            plt.plot([d['mean_fitness'] for d in res['trace']], label = str(i))
+        plt.legend()
+        plt.show()
 
 
 def randomize():
