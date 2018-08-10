@@ -4,6 +4,82 @@ import numpy as np
 
 from scipy.optimize import minimize
 
+# class that estimates pyramid loss between 2 images.
+class PyramidLoss:
+    @classmethod
+    def build_pyramid(img):
+        a = [img]
+        for i in range(5):
+            a.append(cv2.pyrDown(a[-1]))
+        return a
+
+    @classmethod
+    def prepare(target):
+        # assume target is of float32.
+
+        # returns dict as temp storage for future computations.
+        return PyramidLoss.build_pyramid(target)
+
+    @classmethod
+    def compare(incoming, prepared):
+        # assume incoming is of 8bit.
+        incoming_pyramid = \
+            PyramidLoss.build_pyramid((incoming/255.).astype('float32'))
+
+        target_pyramid = prepared
+
+        return sum([np.square((c-t)).mean()
+            for c,t in zip(incoming_pyramid, target_pyramid)])
+
+# environment that optimizes lines to match an image.
+class LineEnv:
+    def __init__(self):
+        self.target_pyramid = None
+        self.loss_metric = PyramidLoss
+
+    # load image as target
+    def load_image(self, path, is_filename=True, scale=1.0):
+        if is_filename:
+            # read image from file
+            orig = cv2.imread(path)
+            assert orig is not None
+        else:
+            # use in memory image
+            orig = path
+
+        self.orig = orig
+        self.scale = scale
+
+        # set expected output h and w
+        self.orig_h, self.orig_w = orig.shape[0:2]
+        self.target_h, self.target_w = self.h*scale, self.w*scale
+
+        self.orig_hw = [self.orig_h, self.orig_w]
+        self.target_hw = [self.target_h, self.target_w]
+
+        # resize
+        target = vis.resize_perfect(target, self.target_h, self.target_w, cubic=True, a=3)
+
+        # floatify
+        target = (target/255.).astype('float32')
+
+        # b/w
+        target = (target[:,:,1:2] + target[:,:,2:3]) *.5
+
+        # clip to normal range
+        target = np.clip(target*1+0.1, 0, 1)
+
+        self.target = target
+
+        # loss metric precomputation
+        self.precomputation = self.loss_metric.prepare(self.target)
+
+    def compare_with_target(self, img):
+        return self.loss_metric.compare(img, self.precomputation)
+
+    def get_blank_canvas(self):
+        
+
 def stochastic_points_that_connects():
     # rule:
     # 1. sample 2 endpoint

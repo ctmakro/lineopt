@@ -14,9 +14,10 @@ def perf_debug():
 parallel = True
 # parallel = False
 
+ncpu = 12
 if parallel:
     from llll import MultithreadedMapper, PoolMaster
-    pm = PoolMaster('lineenv.py', is_filename=True)
+    pm = PoolMaster('lineenv.py', is_filename=True, nproc=ncpu)
 
     def to_optimize(v):
         return pm.call(v)
@@ -144,11 +145,18 @@ def minimize_cem(fun, x, iters,
 def run_cem_opt(it=2000):
     initial_x = mc.to_vec()
 
+    import time
+    tick = time.time()
+
     def callback(dic):
+        nonlocal tick
         mean = dic['mean']
         # display
         mc.from_vec(mean)
-        show()
+
+        if time.time() - tick > 0.2:
+            show()
+            tick = time.time()
 
     results = [
     # minimize_cem(
