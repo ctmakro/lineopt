@@ -3,7 +3,7 @@ from cv2tools import vis,filt
 import numpy as np
 # from scipy.optimize import minimize
 
-from lineenv import ManyConnected, newcanvas, mc, target, to_optimize
+from lineenv import LineEnv
 
 import cProfile
 
@@ -11,8 +11,8 @@ def perf_debug():
     cProfile.run('optimize_for_target(it=50)', sort='tottime')
 
 # exploit parallelism
-parallel = True
-# parallel = False
+# parallel = True
+parallel = False
 
 ncpu = 12
 if parallel:
@@ -26,6 +26,14 @@ if parallel:
     for i in range(100):
         pm.call(vv, mc.indices) # assure indices propagated to all slaves
 
+le = LineEnv()
+le.load_image('hjt.jpg', target_width=384)
+le.init_segments()
+
+def to_optimize(v):
+    le.from_vec(v)
+    return le.calculate_loss()
+
 # minimization
 def minimize_cem(fun, x, iters,
     survival=0.5,
@@ -34,7 +42,7 @@ def minimize_cem(fun, x, iters,
     parallelizable=False):
 
     initial_mean = x
-    initial_stddev = np.ones_like(initial_mean)*mutation
+    initial_stddev = np.ones_like(initial_mean) * mutation
 
     def populate(size, mean, stddev):
         return [np.random.normal(loc=mean, scale=stddev)
@@ -143,7 +151,8 @@ def minimize_cem(fun, x, iters,
     return {'x':best, 'trace':trace}
 
 def run_cem_opt(it=2000):
-    initial_x = mc.to_vec()
+    # initial_x = mc.to_vec()
+    initial_x = le.to_vec()
 
     import time
     tick = time.time()
@@ -152,7 +161,7 @@ def run_cem_opt(it=2000):
         nonlocal tick
         mean = dic['mean']
         # display
-        mc.from_vec(mean)
+        le.from_vec(mean)
 
         if time.time() - tick > 0.2:
             show()
@@ -241,22 +250,19 @@ def run_cem_opt(it=2000):
         plt.show()
 
 
-def randomize():
-    v = mc.to_vec()
-    vc = np.random.normal(loc=v, scale=3)
-    mc.from_vec(vc)
-    # vcc = mc.to_vec()
-    # assert ((vcc - vc)**2).sum() < 1e-10
-    show()
+# def randomize():
+#     v = mc.to_vec()
+#     vc = np.random.normal(loc=v, scale=3)
+#     mc.from_vec(vc)
+#     # vcc = mc.to_vec()
+#     # assert ((vcc - vc)**2).sum() < 1e-10
+#     show()
 
 def show():
-    nc = newcanvas()
-    mc.draw_on(nc)
+    nc = le.get_blank_canvas()
+    le.draw_on(nc)
 
-    # nc2 = newcanvas()
-    # [k.draw_on(nc2) for k in mc.clist]
-
-    cv2.imshow('target', target)
+    cv2.imshow('target', le.target)
     cv2.imshow('canvas', nc)
     # cv2.imshow('canvas2', nc2)
     cv2.waitKey(1)
