@@ -88,8 +88,8 @@ class LineEnv:
     def get_blank_canvas(self):
         return np.ones((self.target_h, self.target_w, 1), dtype='uint8')*255
 
-    def init_segments(self):
-        num_segs=60
+    def init_segments(self, num_segs=60):
+        # num_segs=60
 
         self.segments = []
         self.indices = []
