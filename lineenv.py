@@ -9,7 +9,7 @@ class PyramidLoss:
     @staticmethod
     def build_pyramid(img):
         a = [img]
-        for i in range(5):
+        for i in range(3):
             a.append(cv2.pyrDown(a[-1]))
         return a
 
@@ -72,10 +72,10 @@ class LineEnv:
         target = (target/255.).astype('float32')
 
         # b/w
-        target = (target[:,:,1:2] + target[:,:,2:3]) *.5
+        target = np.einsum('ijk,kt->ijt', target, np.array([[.3], [.6], [.1]]))
 
         # clip to normal range
-        target = np.clip(target*1+0.1, 0, 1)
+        target = np.clip(target, 0, 1)
 
         self.target = target
 
@@ -132,14 +132,14 @@ class LineEnv:
         vc.shape = len(vc)//2, 2
         self.segments = np.split(vc, self.indices, axis=0)
 
-def stochastic_points_that_connects():
+def stochastic_points_that_connects(mindist=0.05):
     # rule:
     # 1. sample 2 endpoint
     # 2. find their middlepoint
     # 3. repeat using the 2 endpoints of each of the 2 new segments.
 
     # minimum dist between two connected points
-    mindist = 0.05
+    # mindist = 0.05
 
     # given two point, return their centerpoint.
     def get_stochastic_centerpoint(p1, p2):
@@ -182,3 +182,114 @@ def stochastic_points_that_connects():
         # otherwise we try again
         else:
             continue
+
+def seg_at_coord(image, y, x): # image is float, output color is uint8
+    color = int(image[int(y), int(x)]*255)
+    ps = np.random.normal(loc=[y,x],scale=5,size=(5,2))
+    return ps, color
+
+class StrokeEnv(LineEnv):
+    def init_segments(self, num_segs=90):
+        # num_segs=60
+
+        self.segments = []
+        self.colors = []
+        self.indices = []
+
+        a = self.target_w * self.target_h
+        s = np.sqrt(a / num_segs)
+
+        rows = int(self.target_h / s)
+        cols = int(self.target_w / s)
+
+        num_segs = rows*cols
+
+        k = 0
+        for i in range(rows):
+            for j in range(cols):
+
+                y = i*s + s/2
+                x = j*s + s/2
+
+                points, color = seg_at_coord(self.target,y,x)
+
+                self.segments.append(points)
+                self.colors.append(color)
+
+                k += len(points)
+                self.indices.append(k)
+
+        self.color_index = self.indices[-1]
+        self.indices = self.indices[:-1]
+        assert len(self.indices) == num_segs - 1
+
+    def draw_on(self, canvas):
+        for i in range(len(self.segments)):
+            points = self.segments[i]
+            color = int(self.colors[i])
+            # print(color,type(color))
+            cv2.polylines(
+                canvas,
+                [(points*64).astype(np.int32)],
+                isClosed = False,
+                color=color,
+                thickness=10,
+                lineType=cv2.LINE_AA,
+                shift = 6,
+            )
+
+    # into vector that could be optimized
+    def to_vec(self):
+        a = np.vstack(self.segments)
+        a = a.flatten()
+
+        colors = np.array(self.colors)/3.
+        return np.concatenate([a, colors])
+
+    def from_vec(self, v):
+        vc = v.copy()
+
+        # segment coordinates in front, colors in back.
+
+        k = self.color_index
+
+        segcoords = vc[0:k*2]
+        segcoords.shape = k, 2
+
+        self.segments = np.split(segcoords, self.indices, axis=0)
+
+        self.colors = np.clip((vc[k*2:]*3), 0, 255).astype('uint8')
+
+def test_line_env():
+    le = LineEnv()
+    le.load_image('hjt.jpg', target_width=384)
+    le.init_segments()
+
+    le.from_vec(le.to_vec())
+
+    nc = le.get_blank_canvas()
+    le.draw_on(nc)
+
+    cv2.imshow('target', le.target)
+    cv2.imshow('canvas', nc)
+    # cv2.imshow('canvas2', nc2)
+    cv2.waitKey(0)
+
+def test_stroke_env():
+    le = StrokeEnv()
+    le.load_image('hjt.jpg', target_width=384)
+    le.init_segments()
+
+    le.from_vec(le.to_vec())
+
+    nc = le.get_blank_canvas()
+    le.draw_on(nc)
+
+    cv2.imshow('target', le.target)
+    cv2.imshow('canvas', nc)
+    # cv2.imshow('canvas2', nc2)
+    cv2.waitKey(0)
+
+if __name__ == '__main__':
+    test_line_env()
+    test_stroke_env()

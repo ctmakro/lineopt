@@ -3,7 +3,7 @@ from cv2tools import vis,filt
 import numpy as np
 # from scipy.optimize import minimize
 
-from lineenv import LineEnv
+from lineenv import LineEnv, StrokeEnv
 
 import cProfile
 
@@ -26,8 +26,10 @@ if parallel:
     for i in range(100):
         pm.call(vv, mc.indices) # assure indices propagated to all slaves
 
-le = LineEnv()
-le.load_image('hjt.jpg', target_width=384)
+le = StrokeEnv()
+# le = LineEnv()
+# le.load_image('hjt.jpg', target_width=256)
+le.load_image('forms.jpg', target_width=256)
 le.init_segments()
 
 def to_optimize(v):
@@ -179,6 +181,7 @@ def run_cem_opt(it=2000):
     minimize_cem(
         to_optimize, initial_x,
         iters = it,
+        # mutation = 4.0,
         mutation = 2.0,
         popsize = 100,
         survival = 0.10,
