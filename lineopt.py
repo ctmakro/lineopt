@@ -26,7 +26,7 @@ if parallel:
     for i in range(100):
         pm.call(vv, mc.indices) # assure indices propagated to all slaves
 
-le = StrokeEnv()
+le = StrokeEnv(grayscale=False)
 # le = LineEnv()
 # le.load_image('hjt.jpg', target_width=256)
 le.load_image('forms.jpg', target_width=256)
@@ -251,6 +251,8 @@ def run_cem_opt(it=2000):
             plt.plot([d['mean_fitness'] for d in res['trace']], label = str(i))
         plt.legend()
         plt.show()
+    else:
+        le.from_vec(results[0]['x'])
 
 
 # def randomize():

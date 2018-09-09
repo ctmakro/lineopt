@@ -31,11 +31,28 @@ class PyramidLoss:
         return sum([np.square((c-t)).mean()
             for c,t in zip(incoming_pyramid, target_pyramid)])
 
+# CNN loss function
+# please refer to https://github.com/richzhang/PerceptualSimilarity
+from perdiff import im2tensor, like
+
+class NNLoss:
+    @staticmethod
+    def prepare(target):
+        return im2tensor(target)
+
+    @staticmethod
+    def compare(incoming, prepared):
+        it = im2tensor(incoming)
+        return like(it, prepared).mean()
+
 # environment that optimizes lines to match an image.
 class LineEnv:
-    def __init__(self):
+    def __init__(self, grayscale=False):
         self.target_pyramid = None
-        self.loss_metric = PyramidLoss
+        # self.loss_metric = PyramidLoss
+        self.loss_metric = NNLoss
+
+        self.grayscale=grayscale
 
     # load image as target
     def load_image(self, path, is_filename=True, scale=1.0, target_width=None):
@@ -71,8 +88,9 @@ class LineEnv:
         # floatify
         target = (target/255.).astype('float32')
 
-        # b/w
-        target = np.einsum('ijk,kt->ijt', target, np.array([[.3], [.6], [.1]]))
+        if self.grayscale:
+            # b/w
+            target = np.einsum('ijk,kt->ijt', target, np.array([[.3], [.6], [.1]]))
 
         # clip to normal range
         target = np.clip(target, 0, 1)
@@ -86,7 +104,11 @@ class LineEnv:
         return self.loss_metric.compare(img, self.precomputated)
 
     def get_blank_canvas(self):
-        return np.ones((self.target_h, self.target_w, 1), dtype='uint8')*255
+        return np.ones((
+                self.target_h,
+                self.target_w,
+                1 if self.grayscale else 3,
+        ), dtype='uint8')*255
 
     def init_segments(self, num_segs=60):
         # num_segs=60
@@ -189,7 +211,12 @@ def seg_at_coord(image, y, x): # image is float, output color is uint8
     return ps, color
 
 class StrokeEnv(LineEnv):
-    def init_segments(self, num_segs=90):
+    def __init__(self, *a, **k):
+        super().__init__(*a,**k)
+        self.color_multiplier = 3.0
+        # self.color_multiplier = 1.0
+
+    def init_segments(self, num_segs=190):
         # num_segs=60
 
         self.segments = []
@@ -226,7 +253,11 @@ class StrokeEnv(LineEnv):
     def draw_on(self, canvas):
         for i in range(len(self.segments)):
             points = self.segments[i]
-            color = int(self.colors[i])
+            if self.grayscale:
+                color = int(self.colors[i])
+            else:
+                c0 = int(self.colors[i])
+                color = (c0,c0,c0)
             # print(color,type(color))
             cv2.polylines(
                 canvas,
@@ -243,7 +274,7 @@ class StrokeEnv(LineEnv):
         a = np.vstack(self.segments)
         a = a.flatten()
 
-        colors = np.array(self.colors)/3.
+        colors = np.array(self.colors)/self.color_multiplier
         return np.concatenate([a, colors])
 
     def from_vec(self, v):
@@ -258,7 +289,7 @@ class StrokeEnv(LineEnv):
 
         self.segments = np.split(segcoords, self.indices, axis=0)
 
-        self.colors = np.clip((vc[k*2:]*3), 0, 255).astype('uint8')
+        self.colors = np.clip((vc[k*2:] * self.color_multiplier), 0, 255).astype('uint8')
 
 def test_line_env():
     le = LineEnv()
