@@ -184,8 +184,8 @@ def stochastic_points_that_connects(mindist=0.05):
             continue
 
 def seg_at_coord(image, y, x): # image is float, output color is uint8
-    color = int(image[int(y), int(x)]*255)
-    ps = np.random.normal(loc=[y,x],scale=5,size=(5,2))
+    color = int(image[int(y), int(x)].mean()*255)
+    ps = np.random.normal(loc=[x,y],scale=5,size=(5,2))
     return ps, color
 
 class StrokeEnv(LineEnv):
