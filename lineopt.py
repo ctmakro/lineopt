@@ -2,8 +2,9 @@ import cv2
 from cv2tools import vis,filt
 import numpy as np
 # from scipy.optimize import minimize
+from lineenv import LineEnv, StrokeEnv, LineEnv2
 
-from lineenv import LineEnv, StrokeEnv
+from losses import PyramidLoss, NNLoss, SSIMLoss
 
 import cProfile
 
@@ -26,11 +27,16 @@ if parallel:
     for i in range(100):
         pm.call(vv, mc.indices) # assure indices propagated to all slaves
 
-le = StrokeEnv(grayscale=False)
-# le = LineEnv()
+# le = StrokeEnv(grayscale=False)
+le = LineEnv2()
 # le.load_image('hjt.jpg', target_width=256)
-le.load_image('forms.jpg', target_width=256)
-le.init_segments()
+le.load_image('jeff.jpg', target_width=256)
+# le.load_image('forms.jpg', target_width=128)
+# le.load_image('forms.jpg', target_width=64)
+le.init_segments(num_segs=120)
+
+# le.set_metric(SSIMLoss)
+le.set_metric(PyramidLoss)
 
 def to_optimize(v):
     le.from_vec(v)
@@ -152,11 +158,36 @@ def minimize_cem(fun, x, iters,
 
     return {'x':best, 'trace':trace}
 
+from scipy.optimize import differential_evolution
+import time
+
+def run_de_opt():
+    initial_x = le.to_vec()
+    tick = time.time()
+
+    def cb(x,**kw):
+        nonlocal tick
+        if time.time() - tick > 0.2:
+            le.from_vec(x)
+            show()
+            tick = time.time()
+
+    res = differential_evolution(
+        func=to_optimize,
+        bounds=[(-10,266) for i in range(len(initial_x))],
+        strategy='best1bin',
+        maxiter=1000,
+        popsize=1,
+        disp=True,
+        callback=cb,
+    )
+
+    print('optr', res)
+
 def run_cem_opt(it=2000):
     # initial_x = mc.to_vec()
     initial_x = le.to_vec()
 
-    import time
     tick = time.time()
 
     def callback(dic):
@@ -182,6 +213,7 @@ def run_cem_opt(it=2000):
         to_optimize, initial_x,
         iters = it,
         # mutation = 4.0,
+        # mutation = 1.0,
         mutation = 2.0,
         popsize = 100,
         survival = 0.10,
@@ -254,6 +286,17 @@ def run_cem_opt(it=2000):
     else:
         le.from_vec(results[0]['x'])
 
+def schedule():
+    run_cem_opt(500)
+    le.set_metric(NNLoss)
+    run_cem_opt(1000)
+    le.set_metric(PyramidLoss)
+
+def schedule2():
+    run_cem_opt(500)
+    le.set_metric(SSIMLoss)
+    run_cem_opt(1000)
+    le.set_metric(PyramidLoss)
 
 # def randomize():
 #     v = mc.to_vec()

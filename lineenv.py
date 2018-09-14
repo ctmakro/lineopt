@@ -2,67 +2,35 @@ import cv2
 from cv2tools import vis,filt
 import numpy as np
 
-# from scipy.optimize import minimize
+from losses import PyramidLoss
 
-# class that estimates pyramid loss between 2 images.
-class PyramidLoss:
-    @staticmethod
-    def build_pyramid(img):
-        a = [img]
-        for i in range(3):
-            a.append(cv2.pyrDown(a[-1]))
-        return a
+from image import artistic_enhance, load_image
 
-    @staticmethod
-    def prepare(target):
-        # assume target is of float32.
-
-        # returns dict as temp storage for future computations.
-        return PyramidLoss.build_pyramid(target)
-
-    @staticmethod
-    def compare(incoming, prepared):
-        # assume incoming is of 8bit.
-        incoming_pyramid = \
-            PyramidLoss.build_pyramid((incoming/255.).astype('float32'))
-
-        target_pyramid = prepared
-
-        return sum([np.square((c-t)).mean()
-            for c,t in zip(incoming_pyramid, target_pyramid)])
-
-# CNN loss function
-# please refer to https://github.com/richzhang/PerceptualSimilarity
-from perdiff import im2tensor, like
-
-class NNLoss:
-    @staticmethod
-    def prepare(target):
-        return im2tensor(target)
-
-    @staticmethod
-    def compare(incoming, prepared):
-        it = im2tensor(incoming)
-        return like(it, prepared).mean()
 
 # environment that optimizes lines to match an image.
 class LineEnv:
-    def __init__(self, grayscale=False):
+    def __init__(self, grayscale=False, metric=PyramidLoss):
         self.target_pyramid = None
         # self.loss_metric = PyramidLoss
-        self.loss_metric = NNLoss
+        self.set_metric(metric)
 
         self.grayscale=grayscale
 
+    def set_metric(self, metric=None):
+        if metric is not None:
+            self.loss_metric = metric
+
+        if hasattr(self, 'target'):
+            # loss metric precomputation
+            self.precomputated = self.loss_metric.prepare(self.target)
+
+    # process of loaded images
+    def preprocess(self, image):
+        return artistic_enhance(image)
+
     # load image as target
     def load_image(self, path, is_filename=True, scale=1.0, target_width=None):
-        if is_filename:
-            # read image from file
-            orig = cv2.imread(path)
-            assert orig is not None
-        else:
-            # use in memory image
-            orig = path
+        orig = load_image(path, is_filename)
 
         if target_width is not None:
             scale = target_width / orig.shape[1]
@@ -88,6 +56,8 @@ class LineEnv:
         # floatify
         target = (target/255.).astype('float32')
 
+        target = self.preprocess(target)
+
         if self.grayscale:
             # b/w
             target = np.einsum('ijk,kt->ijt', target, np.array([[.3], [.6], [.1]]))
@@ -97,8 +67,7 @@ class LineEnv:
 
         self.target = target
 
-        # loss metric precomputation
-        self.precomputated = self.loss_metric.prepare(self.target)
+        self.set_metric()
 
     def compare_with_target(self, img):
         return self.loss_metric.compare(img, self.precomputated)
@@ -140,9 +109,9 @@ class LineEnv:
         )
 
     def calculate_loss(self):
-        blank = self.get_blank_canvas()
+        blank = self.get_blank_canvas() # 8bit
         self.draw_on(blank)
-        return self.compare_with_target(blank)
+        return self.compare_with_target((blank/255.).astype('float32')) # float
 
     # into vector that could be optimized
     def to_vec(self):
@@ -153,6 +122,42 @@ class LineEnv:
         vc = v.copy()
         vc.shape = len(vc)//2, 2
         self.segments = np.split(vc, self.indices, axis=0)
+
+    def to_json_file(self, filename=None):
+        if filename is None:
+            filename = input('Please enter the filename to save JSON to')
+
+        r = []
+        for segment in self.segments:
+            r.append([[p[0], p[1]] for p in segment])
+        import json
+
+        with open(filename, 'w') as f:
+            json.dump(f)
+
+class LineEnv2(LineEnv):
+    def init_segments(self, num_segs=60):
+        # num_segs=60
+
+        self.segments = []
+        self.indices = []
+
+        k = 0
+        for i in range(num_segs):
+            # self.add(Connected(stochastic_points_that_connects() * w))
+            # sptc = stochastic_points_that_connects()
+            start = np.random.uniform(0,1,size=(2))
+            total = np.random.normal(loc=start,scale=0.05,size=(16, 2))
+
+            sptc = total
+            self.segments.append(sptc * max(self.target_h, self.target_w))
+
+            k += len(sptc)
+            self.indices.append(k)
+
+        self.indices = self.indices[:-1]
+        assert len(self.indices) == num_segs - 1
+
 
 def stochastic_points_that_connects(mindist=0.05):
     # rule:
@@ -264,7 +269,7 @@ class StrokeEnv(LineEnv):
                 [(points*64).astype(np.int32)],
                 isClosed = False,
                 color=color,
-                thickness=10,
+                thickness=4,
                 lineType=cv2.LINE_AA,
                 shift = 6,
             )

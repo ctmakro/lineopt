@@ -15,7 +15,7 @@ from IPython import embed
 
 use_gpu = True        # Whether to use GPU
 # use_gpu = True         # Whether to use GPU
-spatial = True        # Return a spatial map of perceptual distance.
+spatial = False       # Return a spatial map of perceptual distance.
                        # Optional args spatial_shape and spatial_order control output shape and resampling filter: see DistModel.initialize() for details.
 
 ## Initializing the model
@@ -28,7 +28,7 @@ model.initialize(model='net-lin',net='alex',use_gpu=use_gpu,spatial=spatial)
 
 # Off-the-shelf uncalibrated networks
 #model.initialize(model='net',net='squeeze',use_gpu=use_gpu)
-#model.initialize(model='net',net='alex',use_gpu=use_gpu)
+# model.initialize(model='net',net='alex',use_gpu=use_gpu)
 #model.initialize(model='net',net='vgg',use_gpu=use_gpu)
 
 # Low-level metrics
@@ -44,9 +44,13 @@ print('Model [%s] initialized'%model.name())
 os.chdir(cwd)
 
 def im2tensor(im): # into pytorch compatible dimensions
-    return util.im2tensor(im)
+    # assume input 0..255 or 0..1
+    if im.dtype=='uint8':
+        return util.im2tensor(im)
+    elif im.dtype=='float32':
+        return util.im2tensor(im, factor=.5)
 
-def like(i1, i2):
+def dist(i1, i2):
     return model.forward(i1, i2)
 
 if __name__ == '__main__':
@@ -56,8 +60,8 @@ if __name__ == '__main__':
     ex_p0 = im2tensor(util.load_image('./imgs/ex_p0.png'))
     ex_p1 = im2tensor(util.load_image('./imgs/ex_p1.png'))
 
-    ex_d0 = like(ex_ref,ex_p0)
-    ex_d1 = like(ex_ref,ex_p1)
+    ex_d0 = dist(ex_ref,ex_p0)
+    ex_d1 = dist(ex_ref,ex_p1)
 
     if not spatial:
         print('Distances: (%.3f, %.3f)'%(ex_d0, ex_d1))
