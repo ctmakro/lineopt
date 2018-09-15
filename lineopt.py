@@ -33,7 +33,7 @@ le = LineEnv2()
 le.load_image('jeff.jpg', target_width=256)
 # le.load_image('forms.jpg', target_width=128)
 # le.load_image('forms.jpg', target_width=64)
-le.init_segments(num_segs=120)
+le.init_segments(num_segs=60)
 
 # le.set_metric(SSIMLoss)
 le.set_metric(PyramidLoss)

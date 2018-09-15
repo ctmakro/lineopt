@@ -123,17 +123,13 @@ class LineEnv:
         vc.shape = len(vc)//2, 2
         self.segments = np.split(vc, self.indices, axis=0)
 
-    def to_json_file(self, filename=None):
+    def segments_to_pickle(self, filename=None):
         if filename is None:
-            filename = input('Please enter the filename to save JSON to')
+            filename = input('Please enter the filename to save pickle to:')
 
-        r = []
-        for segment in self.segments:
-            r.append([[p[0], p[1]] for p in segment])
-        import json
-
-        with open(filename, 'w') as f:
-            json.dump(f)
+        import pickle
+        with open(filename, 'wb') as f:
+            pickle.dump(self.segments,f)
 
 class LineEnv2(LineEnv):
     def init_segments(self, num_segs=60):
