@@ -49,6 +49,9 @@ segments = [segments[i] for i in indices]
 # connect to bot
 from cartman import bot
 bot = bot()
+
+import time
+tick = time.time()
 bot.home()
 bot.set_speed(50000)
 
@@ -75,3 +78,5 @@ for s in segments:
     draw_segment(s)
 
 bot.wait_until_idle()
+
+print('time spent:', time.time()-tick)
