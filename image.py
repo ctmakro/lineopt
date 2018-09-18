@@ -16,15 +16,24 @@ def resize(image, maxwidth):
     cmw = max(image.shape[0:2])
     return vis.resize_perfect(image, maxwidth, maxwidth, cubic=True, a=3)
 
-def artistic_enhance(image):
-    # try penciling
+def f32(k):return np.array(k, dtype=np.float32)
 
-    blurred = cv2.GaussianBlur(image,ksize=(0,0),sigmaX=20)
+# convert img type from uint8 to float32 properly
+def zeroone(img):
+    if img.dtype == 'uint8':
+        # good luck if you succeeded with uint8
+        img = np.divide(img, 255., dtype='float32')
+    return img
 
-    alpha = 2.0
-    beta = 0.7
+def artistic_enhance(img):
+    img = zeroone(img)
 
-    hf = (image - blurred)*alpha+beta
+    blurred = cv2.GaussianBlur(img,ksize=(0,0),sigmaX=20)
+
+    alpha = f32(2)
+    beta = f32(.7)
+
+    hf = (img - blurred) * alpha + beta
     return np.clip(hf, 0, 1)
 
 def lru_cache(f):
@@ -57,17 +66,29 @@ def fib(n):
     else:
         return fib(n-1)+fib(n-2)
 
+
+pyramid_kernel = np.array([.25, .5, .25], dtype='float32')
 # @lru_cache
 def laplacian_pyramid(img, levels):
+    img = zeroone(img)
+
     gaussian_after_downsize = [img]
     laplacian = []
 
     for i in range(levels):
         orig = gaussian_after_downsize[-1]
-        blurred = cv2.GaussianBlur(
+        # blurred = cv2.GaussianBlur(
+        #     orig,
+        #     ksize=(0,0),
+        #     sigmaX=1.0,
+        # )
+
+        blurred = cv2.sepFilter2D(
             orig,
-            ksize=(0,0),
-            sigmaX=1.0,
+            ddepth = cv2.CV_32F,
+            kernelX = pyramid_kernel,
+            kernelY = pyramid_kernel,
+            borderType = cv2.BORDER_REPLICATE,
         )
 
         laplacian.append(orig - blurred)
@@ -84,8 +105,11 @@ def laplacian_pyramid(img, levels):
 if __name__ == '__main__':
     print(fib(50))
 
-
     im = load_image('jeff.jpg')
+    ai = artistic_enhance(im)
+
+    cv2.imshow('ai', ai)
+
     im = np.divide(im, 255., dtype='float32')
     lp = laplacian_pyramid(im, levels=4)
     for id,i in enumerate(lp):
