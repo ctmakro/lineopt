@@ -132,7 +132,7 @@ class LineEnv:
             pickle.dump(self.segments,f)
 
 class LineEnv2(LineEnv):
-    def init_segments(self, num_segs=60):
+    def init_segments(self, num_segs=300):
         # num_segs=60
 
         self.segments = []
@@ -143,7 +143,7 @@ class LineEnv2(LineEnv):
             # self.add(Connected(stochastic_points_that_connects() * w))
             # sptc = stochastic_points_that_connects()
             start = np.random.uniform(0,1,size=(2))
-            total = np.random.normal(loc=start,scale=0.05,size=(16, 2))
+            total = np.random.normal(loc=start,scale=0.05,size=(3, 2))
 
             sptc = total
             self.segments.append(sptc * max(self.target_h, self.target_w))

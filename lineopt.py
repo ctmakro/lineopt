@@ -4,7 +4,7 @@ import numpy as np
 # from scipy.optimize import minimize
 from lineenv import LineEnv, StrokeEnv, LineEnv2
 
-from losses import PyramidLoss, NNLoss, SSIMLoss
+from losses import PyramidLoss, NNLoss, SSIMLoss, LaplacianPyramidLoss
 
 import cProfile
 
@@ -33,10 +33,11 @@ le = LineEnv2()
 le.load_image('jeff.jpg', target_width=256)
 # le.load_image('forms.jpg', target_width=128)
 # le.load_image('forms.jpg', target_width=64)
-le.init_segments(num_segs=60)
+le.init_segments(num_segs=300)
 
 # le.set_metric(SSIMLoss)
 le.set_metric(PyramidLoss)
+# le.set_metric(LaplacianPyramidLoss)
 
 def to_optimize(v):
     le.from_vec(v)

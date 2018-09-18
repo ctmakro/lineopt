@@ -1,10 +1,14 @@
 import cv2
 import numpy as np
 
+from image import zeroone
+
 # class that estimates pyramid loss between 2 images.
 class PyramidLoss:
     @staticmethod
     def build_pyramid(img):
+        img = zeroone(img)
+
         a = [img]
         for i in range(5):
             a.append(cv2.pyrDown(a[-1]))
@@ -27,6 +31,21 @@ class PyramidLoss:
 
         return sum([np.square((c-t)).mean()
             for c,t in zip(incoming_pyramid, target_pyramid)])
+
+from image import laplacian_pyramid
+from greedy import laplacian_loss_on_pyramids
+
+class LaplacianPyramidLoss:
+    @staticmethod
+    def prepare(target):
+        return laplacian_pyramid(target, 5)
+
+    @staticmethod
+    def compare(incoming, prepared):
+        return laplacian_loss_on_pyramids(
+            laplacian_pyramid(incoming, 5),
+            prepared,
+        )
 
 class SSIMLoss:
     @staticmethod
