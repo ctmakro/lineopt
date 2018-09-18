@@ -44,7 +44,7 @@ def lru_cache(f):
 
             l.append(hash)
             if len(l)>50:
-                oldhash = l.popleft()
+                oldhash = l.pop(0)
                 d.pop(oldhash, None)
 
         return d[hash]
@@ -57,9 +57,7 @@ def fib(n):
     else:
         return fib(n-1)+fib(n-2)
 
-print(fib(50))
-
-@lru_cache
+# @lru_cache
 def laplacian_pyramid(img, levels):
     gaussian_after_downsize = [img]
     laplacian = []
@@ -84,6 +82,9 @@ def laplacian_pyramid(img, levels):
     return laplacian
 
 if __name__ == '__main__':
+    print(fib(50))
+
+
     im = load_image('jeff.jpg')
     im = np.divide(im, 255., dtype='float32')
     lp = laplacian_pyramid(im, levels=4)
