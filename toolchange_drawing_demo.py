@@ -23,8 +23,8 @@ b = bot()
 paper_origin = a(90, 240, 0)
 paper_goto = shifted_goto(b, paper_origin)
 
-def pendown():paper_goto(z=0.5)
-def penup():paper_goto(z=6)
+def pendown():paper_goto(z=1)
+def penup():paper_goto(z=10)
 
 def draw_segments(s): # numpy array of shape (N, 2)
     penup()
@@ -43,6 +43,13 @@ def circle_at(center, radius):
     segments = a(*[[x,y] for x,y in zip(xs,ys)])
     draw_segments(segments)
 
+def square_at(center, radius):
+    r = radius
+    f = [[-1,-1],[-1,1],[1,1],[1,-1],[-1,-1]]
+    sq = a(*f)
+    sq = sq * radius + center
+    draw_segments(sq)
+
 b.home()
 b.set_speed(10000)
 
@@ -57,7 +64,11 @@ for j in range(4): # four colors
 
     b.set_speed(40000)
     for i in range(1, 10):
-        circle_at(a(60, 60 + j*20), i*2)
+        center = a(60+j*20, 60+j*20)
+        radius = i*2
+
+        square_at(center,radius)
+        circle_at(center,radius)
 
     putdown(b, docks[j]) # put back to where it's taken from.
 
