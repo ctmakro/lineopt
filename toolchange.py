@@ -3,24 +3,24 @@
 import numpy as np
 a = lambda *k:np.array(k)
 
+# x clearance
+xc = 15
+# y clearance
+yc = 40
+# how much more distance to push in the x- direction
+# to ensure a snap-mount of the pen
+overshoot = 8
+
+# each dock is 30mm away from the previous one in x+ direction
+dock_spacing = 30
+
 class ToolChange():
     def __init__(self, bot, dock0):
         self.bot = bot
         self.dock0 = dock0
 
-        # each dock is 30mm away from the previous one in x+ direction
-        dock_spacing = 30
-
         # 4 dock in total
         self.docks = [dock0+a(dock_spacing*i,0,0) for i in range(4)]
-
-    # x clearance
-    xc = 15
-    # y clearance
-    yc = 40
-    # how much more distance to push in the x- direction
-    # to ensure a snap-mount of the pen
-    overshoot = 8
 
     # pick the pen up from a specific dock
     def pickup(self, dock_index):
@@ -72,4 +72,4 @@ if __name__ == '__main__':
             tc.pickup(i)
             tc.putdown(i)
 
-    b.wait_until_idle()
+    b.sync()

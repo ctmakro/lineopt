@@ -3,7 +3,7 @@ pick up a pen of each color and draw a series of circles.
 '''
 
 import numpy as np
-from toolchange import pickup, putdown, safepoint, docks
+from toolchange import ToolChange, dock0
 
 a = lambda *k:np.array(k)
 
@@ -53,8 +53,10 @@ def square_at(center, radius):
 b.home()
 b.set_speed(10000)
 
+tc = ToolChange(b, dock0)
+
 for j in range(4): # four colors
-    pickup(b, docks[j])
+    tc.pickup(j)
 
     # immediately after pickup, a pendown-penup sequence
     # has to be performed to make sure the pen slides up
@@ -70,6 +72,6 @@ for j in range(4): # four colors
         square_at(center,radius)
         circle_at(center,radius)
 
-    putdown(b, docks[j]) # put back to where it's taken from.
+    tc.putdown(j)
 
-b.wait_until_idle()
+b.sync()
