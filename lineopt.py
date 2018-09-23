@@ -2,7 +2,7 @@ import cv2
 from cv2tools import vis,filt
 import numpy as np
 # from scipy.optimize import minimize
-from lineenv import LineEnv, StrokeEnv, LineEnv2
+from lineenv import LineEnv, StrokeEnv, LineEnv2, LineEnvCMYK
 
 from losses import PyramidLoss, NNLoss, SSIMLoss, LaplacianPyramidLoss, FaceWeightedPyramidLoss
 
@@ -28,7 +28,8 @@ if parallel:
         pm.call(vv, mc.indices) # assure indices propagated to all slaves
 
 # le = StrokeEnv(grayscale=False)
-le = LineEnv2()
+le = LineEnvCMYK()
+# le = LineEnv2()
 # le.load_image('hjt.jpg', target_width=256)
 le.load_image('jeff.jpg', target_width=256)
 # le.load_image('forms.jpg', target_width=128)
@@ -293,10 +294,15 @@ def run_cem_opt(it=2000, temp = 2.0):
     return results
 
 def schedule3():
-    t = 5
+    import time
+    tick = time.time()
+
+    c = 0
+    t = 10
     i = 9999
     while 1:
         results = run_cem_opt(10, temp=t)
+        c+=10
         best = results[0]['trace'][-1]['max_fitness']
         if best < i:
             i = best
@@ -304,6 +310,9 @@ def schedule3():
             t *= 0.9
 
         if t<1: break
+
+    tt = time.time() - tick
+    print(tt,'seconds',c,'generations',tt/c,'s/gen' )
 
 def schedule():
     run_cem_opt(500)

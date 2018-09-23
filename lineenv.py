@@ -9,12 +9,14 @@ from image import artistic_enhance, load_image
 
 # environment that optimizes lines to match an image.
 class LineEnv:
-    def __init__(self, grayscale=False, metric=PyramidLoss):
+    def __init__(self, grayscale=False, metric=PyramidLoss, color=(0,0,0)):
         self.target_pyramid = None
         # self.loss_metric = PyramidLoss
         self.set_metric(metric)
 
         self.grayscale=grayscale
+
+        self.color=color
 
     def set_metric(self, metric=None):
         if metric is not None:
@@ -106,7 +108,8 @@ class LineEnv:
             canvas,
             [(points*64).astype(np.int32) for points in self.segments],
             isClosed = False,
-            color=(0, 0, 0),
+            # color=(0, 0, 0),
+            color = self.color,
             thickness=1,
             lineType=cv2.LINE_AA,
             shift = 6,
@@ -158,6 +161,78 @@ class LineEnv2(LineEnv):
         self.indices = self.indices[:-1]
         assert len(self.indices) == num_segs - 1
 
+
+cmyk = np.array([
+    [7,184,228],
+    [226,69,198],
+    [251,230,0],
+    [30,30,30],
+    ])
+
+class LineEnvCMYK(LineEnv):
+    # CMYK version
+    # separated into 4 colors
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self.envs = [
+            LineEnv2(*a, **kw, color=tuple([int(cmyk[i][j]) for j in reversed(range(3))]))
+            for i in range(4)
+        ]
+
+    def init_segments(self, num_segs=300):
+        # num_segs=60
+        nk = [int(num_segs*f) for f in [0.2, 0.4, 0.4, 0.4]]
+
+        self.segments = []
+        self.indices = []
+
+        k = 0
+        for idx,e in enumerate(self.envs):
+            e.target_h = self.target_h
+            e.target_w = self.target_w
+            e.init_segments(num_segs=nk[idx])
+            k += len(e.to_vec())
+            self.indices.append(k)
+
+        self.indices = self.indices[:-1]
+
+    def draw_on(self, canvas):
+        # cmyk multiplicative mixing
+        cs = []
+        for e in self.envs:
+            c = np.full_like(canvas,255, dtype=np.uint8)
+            e.draw_on(c)
+            cs.append(c)
+
+        # cs = [c.astype(np.float32) for c in cs]
+        # result = canvas * cs[0] * cs[1] * cs[2] * cs[3]
+        # result = np.divide(result, 255*255*255*255, dtype=np.float32).astype('uint8')
+        cc = canvas.astype(np.float32)
+        result = cc * cs[0] * cs[1] * cs[2] * cs[3]
+        result = np.divide(result, 255*255*255*255, dtype=np.float32).astype('uint8')
+
+        canvas[:] = result[:]
+
+    # into vector that could be optimized
+    def to_vec(self):
+        a = np.concatenate([e.to_vec() for e in self.envs])
+        return a.flatten()
+
+    def from_vec(self, v):
+        vc = v.copy()
+        # vc.shape = len(vc)//2, 2
+        segs = np.split(vc, self.indices, axis=0)
+        for e,s in zip(self.envs, segs):
+            e.from_vec(s)
+
+    def segments_to_pickle(self, filename=None):
+        if filename is None:
+            filename = input('Please enter the filename to save pickle to:')
+
+        import pickle
+        with open(filename, 'wb') as f:
+            pickle.dump([e.segments for e in self.envs],f)
 
 def stochastic_points_that_connects(mindist=0.05):
     # rule:
