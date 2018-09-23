@@ -30,11 +30,13 @@ def artistic_enhance(img):
 
     blurred = cv2.GaussianBlur(img,ksize=(0,0),sigmaX=20)
 
-    alpha = f32(2)
-    beta = f32(.7)
+    theta = f32(.3)
 
-    hf = (img - blurred) * alpha + beta
-    return np.clip(hf, 0, 1)
+    mean = img.mean()
+
+    hf = img - blurred
+    res = (img + hf * theta) + (0.6 - mean)
+    return np.clip(res, 0, 1)
 
 def lru_cache(f):
     d = {}
