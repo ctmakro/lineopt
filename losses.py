@@ -2,17 +2,22 @@ import cv2
 import numpy as np
 
 from image import zeroone
+from facial import heatmap
+
+def pyramid_of_level(img, levels):
+    a = [img]
+    for i in range(levels):
+        smaller = cv2.pyrDown(a[-1])
+        if(len(smaller.shape)==2): smaller.shape+=1,
+        a.append(smaller)
+    return a
 
 # class that estimates pyramid loss between 2 images.
 class PyramidLoss:
     @staticmethod
     def build_pyramid(img):
         img = zeroone(img)
-
-        a = [img]
-        for i in range(5):
-            a.append(cv2.pyrDown(a[-1]))
-        return a
+        return pyramid_of_level(img,5)
 
     @staticmethod
     def prepare(target):
@@ -31,6 +36,31 @@ class PyramidLoss:
 
         return sum([np.square((c-t)).mean()
             for c,t in zip(incoming_pyramid, target_pyramid)])
+
+class FaceWeightedPyramidLoss:
+    @staticmethod
+    def build_pyramid(img):
+        img = zeroone(img)
+        hm = heatmap(img)
+        return pyramid_of_level(img, 5), pyramid_of_level(hm, 5)
+
+    @staticmethod
+    def prepare(target):
+        # assume target is of float32.
+
+        # returns dict as temp storage for future computations.
+        return FaceWeightedPyramidLoss.build_pyramid(target)
+
+    @staticmethod
+    def compare(incoming, prepared):
+        # assume incoming is of 8bit.
+        incoming_pyramid = \
+            PyramidLoss.build_pyramid(incoming)
+
+        target_pyramid, heatmap_pyramid = prepared
+
+        return sum([(np.square((c-t)) * w).mean()
+            for c,t,w in zip(incoming_pyramid, target_pyramid, heatmap_pyramid)])
 
 from image import laplacian_pyramid
 from greedy import laplacian_loss_on_pyramids

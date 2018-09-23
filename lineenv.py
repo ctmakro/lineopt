@@ -32,6 +32,10 @@ class LineEnv:
     def load_image(self, path, is_filename=True, scale=1.0, target_width=None):
         orig = load_image(path, is_filename)
 
+        # crop to face region
+        from facial import facecrop
+        orig = facecrop(orig)
+
         if target_width is not None:
             scale = target_width / orig.shape[1]
 

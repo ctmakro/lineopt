@@ -4,7 +4,7 @@ import numpy as np
 # from scipy.optimize import minimize
 from lineenv import LineEnv, StrokeEnv, LineEnv2
 
-from losses import PyramidLoss, NNLoss, SSIMLoss, LaplacianPyramidLoss
+from losses import PyramidLoss, NNLoss, SSIMLoss, LaplacianPyramidLoss, FaceWeightedPyramidLoss
 
 import cProfile
 
@@ -36,7 +36,8 @@ le.load_image('jeff.jpg', target_width=256)
 le.init_segments(num_segs=300)
 
 # le.set_metric(SSIMLoss)
-le.set_metric(PyramidLoss)
+le.set_metric(FaceWeightedPyramidLoss)
+# le.set_metric(PyramidLoss)
 # le.set_metric(LaplacianPyramidLoss)
 
 def to_optimize(v):
@@ -142,7 +143,8 @@ def minimize_cem(fun, x, iters,
         assert len(population) == popsize
 
         # logging
-        print('fitness: mean {:2.6f} (best {:2.6f} worst {:2.6f} out of {}) {:2.4f} s ({:2.4f}s/i, {:4.4f}i/s)'.format(
+        print('mutation: {:2.4f} fitness: mean {:2.6f} (best {:2.6f} worst {:2.6f} out of {}) {:2.4f} s ({:2.4f}s/i, {:4.4f}i/s)'.format(
+            mutation,
             mean_fitness, max_fitness, min_fitness,
             popsize,
             duration, time_per_instance, 1 / time_per_instance))
@@ -185,7 +187,7 @@ def run_de_opt():
 
     print('optr', res)
 
-def run_cem_opt(it=2000):
+def run_cem_opt(it=2000, temp = 2.0):
     # initial_x = mc.to_vec()
     initial_x = le.to_vec()
 
@@ -215,7 +217,8 @@ def run_cem_opt(it=2000):
         iters = it,
         # mutation = 4.0,
         # mutation = 1.0,
-        mutation = 2.0,
+        mutation = temp,
+        # mutation = 2.0,
         popsize = 100,
         survival = 0.10,
         cb = callback,
@@ -286,6 +289,21 @@ def run_cem_opt(it=2000):
         plt.show()
     else:
         le.from_vec(results[0]['x'])
+
+    return results
+
+def schedule3():
+    t = 5
+    i = 9999
+    while 1:
+        results = run_cem_opt(10, temp=t)
+        best = results[0]['trace'][-1]['max_fitness']
+        if best < i:
+            i = best
+        else:
+            t *= 0.9
+
+        if t<1: break
 
 def schedule():
     run_cem_opt(500)
