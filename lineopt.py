@@ -4,7 +4,7 @@ import numpy as np
 # from scipy.optimize import minimize
 from lineenv import LineEnv, StrokeEnv, LineEnv2, LineEnvCMYK
 
-from losses import PyramidLoss, NNLoss, SSIMLoss, LaplacianPyramidLoss, FaceWeightedPyramidLoss
+from losses import PyramidLoss, NNLoss, SSIMLoss, LaplacianPyramidLoss, FaceWeightedPyramidLoss, LabPyramidLoss
 
 import cProfile
 
@@ -27,19 +27,28 @@ if parallel:
     for i in range(100):
         pm.call(vv, mc.indices) # assure indices propagated to all slaves
 
+
+import argparse as ap
+ap = ap.ArgumentParser()
+ap.add_argument('filename')
+d = ap.parse_args()
+
 # le = StrokeEnv(grayscale=False)
 le = LineEnvCMYK()
 # le = LineEnv2()
 # le.load_image('hjt.jpg', target_width=256)
-le.load_image('jeff.jpg', target_width=256)
+le.load_image(d.filename, target_width=256)
+# le.load_image('fruits.jpg', target_width=256)
+# le.load_image('jeff.jpg', target_width=256)
 # le.load_image('forms.jpg', target_width=128)
 # le.load_image('forms.jpg', target_width=64)
-le.init_segments(num_segs=300)
+le.init_segments(num_segs=100)
 
 # le.set_metric(SSIMLoss)
-le.set_metric(FaceWeightedPyramidLoss)
+# le.set_metric(LabPyramidLoss)
+# le.set_metric(FaceWeightedPyramidLoss)
 # le.set_metric(PyramidLoss)
-# le.set_metric(LaplacianPyramidLoss)
+le.set_metric(LaplacianPyramidLoss)
 
 def to_optimize(v):
     le.from_vec(v)
@@ -293,12 +302,12 @@ def run_cem_opt(it=2000, temp = 2.0):
 
     return results
 
-def schedule3():
+def schedule3(): # annealing schedule. worked well
     import time
     tick = time.time()
 
     c = 0
-    t = 10
+    t = 3
     i = 9999
     while 1:
         results = run_cem_opt(10, temp=t)
@@ -309,7 +318,7 @@ def schedule3():
         else:
             t *= 0.9
 
-        if t<1: break
+        if t<0.1: break
 
     tt = time.time() - tick
     print(tt,'seconds',c,'generations',tt/c,'s/gen' )

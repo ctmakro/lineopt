@@ -70,7 +70,8 @@ def fib(n):
         return fib(n-1)+fib(n-2)
 
 
-pyramid_kernel = np.array([.25, .5, .25], dtype='float32')
+pyramid_kernel = np.array([6, 24, 36, 24, 6], dtype='float32')
+pyramid_kernel /= pyramid_kernel.sum()
 # @lru_cache
 def laplacian_pyramid(img, levels):
     img = zeroone(img)

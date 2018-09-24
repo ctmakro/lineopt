@@ -1,7 +1,12 @@
 import pickle
 import numpy as np
 
-with open('jeffcmyk.pickle', 'rb') as f:
+import argparse as ap
+ap = ap.ArgumentParser()
+ap.add_argument('filename')
+d = ap.parse_args()
+
+with open(d.filename, 'rb') as f:
     foursegments = pickle.load(f)
 
 # revert y-axis
@@ -85,22 +90,23 @@ def draw_segment(segment):
 from toolchange import ToolChange, dock0
 tc = ToolChange(bot, dock0)
 
-tc.pickup(3)
-pendown()
-penup() #trimming
-# draw outer contour
-draw_segment(a(
-    [0,0],[0,desired_side],
-    [desired_side,desired_side],[desired_side,0],
-    [0,0],
-) + paper_origin)
+def trimming():
+    pendown()
+    penup() #trimming
 
-tc.putdown(3)
+def oc():
+    # draw outer contour
+    draw_segment(a(
+        [0,0],[0,desired_side],
+        [desired_side,desired_side],[desired_side,0],
+        [0,0],
+    ) + paper_origin)
 
 for idx,segs in enumerate(nf):
     tc.pickup(idx)
-    pendown()
-    penup() #trimming
+    trimming()
+    oc()
+
     for s in segs:
         draw_segment(s)
     tc.putdown(idx)

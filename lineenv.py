@@ -6,7 +6,6 @@ from losses import PyramidLoss
 
 from image import artistic_enhance, load_image
 
-
 # environment that optimizes lines to match an image.
 class LineEnv:
     def __init__(self, grayscale=False, metric=PyramidLoss, color=(0,0,0)):
@@ -28,7 +27,8 @@ class LineEnv:
 
     # process of loaded images
     def preprocess(self, image):
-        return artistic_enhance(image)
+        # return artistic_enhance(image)
+        return image**0.4545
 
     # load image as target
     def load_image(self, path, is_filename=True, scale=1.0, target_width=None):
@@ -165,7 +165,7 @@ class LineEnv2(LineEnv):
 cmyk = np.array([
     [7,184,228],
     [226,69,198],
-    [251,230,0],
+    [255,255,25],
     [30,30,30],
     ])
 
@@ -176,7 +176,7 @@ class LineEnvCMYK(LineEnv):
     def __init__(self, *a, **kw):
         super().__init__(*a, **kw)
         self.envs = [
-            LineEnv2(*a, **kw, color=tuple([int(cmyk[i][j]) for j in reversed(range(3))]))
+            LineEnv(*a, **kw, color=tuple([int(cmyk[i][j]) for j in reversed(range(3))]))
             for i in range(4)
         ]
 

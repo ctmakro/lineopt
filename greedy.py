@@ -51,9 +51,10 @@ loss = PyramidLoss
 
 def laplacian_loss_on_pyramids(lp1, lp2):
     weights = [1] * len(lp1)
-    # weights[0] = 3
-    # weights[1] = 2
-    # weights[-1] = 0.5
+    weights[0] = 0.2
+    weights[1] = 2
+    weights[2] = 2
+    weights[-1] = 1
 
     # sum to 100
     weights =  [w * (100/sum(weights)) for w in weights]

@@ -37,6 +37,36 @@ class PyramidLoss:
         return sum([np.square((c-t)).mean()
             for c,t in zip(incoming_pyramid, target_pyramid)])
 
+def bgr2lab(i):
+    return cv2.cvtColor(i, cv2.COLOR_BGR2Lab)
+
+# class that estimates pyramid loss between 2 images.
+class LabPyramidLoss:
+    @staticmethod
+    def build_pyramid(img):
+        img = zeroone(img)
+        img = bgr2lab(img)
+        p = pyramid_of_level(img,5)
+        return p
+
+    @staticmethod
+    def prepare(target):
+        # assume target is of float32.
+
+        # returns dict as temp storage for future computations.
+        return LabPyramidLoss.build_pyramid(target)
+
+    @staticmethod
+    def compare(incoming, prepared):
+        # assume incoming is of 8bit.
+        incoming_pyramid = \
+            LabPyramidLoss.build_pyramid(incoming)
+
+        target_pyramid = prepared
+
+        return sum([np.square((c-t)).mean()
+            for c,t in zip(incoming_pyramid, target_pyramid)])
+
 class FaceWeightedPyramidLoss:
     @staticmethod
     def build_pyramid(img):
@@ -68,11 +98,13 @@ from greedy import laplacian_loss_on_pyramids
 class LaplacianPyramidLoss:
     @staticmethod
     def prepare(target):
+        # return naive_laplacian_pyramid(target, 5)
         return laplacian_pyramid(target, 5)
 
     @staticmethod
     def compare(incoming, prepared):
         return laplacian_loss_on_pyramids(
+            # naive_laplacian_pyramid(incoming, 5),
             laplacian_pyramid(incoming, 5),
             prepared,
         )

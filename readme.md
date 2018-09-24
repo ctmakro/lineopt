@@ -11,6 +11,6 @@ I don't have time explain what these code does.
 ## Give it a taste
 
 ```bash
-$ ipython -i lineopt.py
->>> run_cem_opt()
+$ ipython -i lineopt.py jeff.jpg
+>>> schedule3()
 ```
