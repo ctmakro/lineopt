@@ -1,7 +1,13 @@
 import pickle
 import numpy as np
+a = lambda *k:np.array(k)
 
-with open('jeff.pickle', 'rb') as f:
+import argparse as ap
+ap = ap.ArgumentParser()
+ap.add_argument('filename')
+d = ap.parse_args()
+
+with open(d.filename, 'rb') as f:
     segments = pickle.load(f)
 
 # revert y-axis
@@ -38,13 +44,14 @@ def travel_salesman_sa(list_points):
         newTour =  tour[:i] + tour[j:j+1] +  tour[i+1:j] + tour[i:i+1] + tour[j+1:];
         if math.exp( ( sum([ math.sqrt(sum([(cities[tour[(k+1) % ncities]][d] - cities[tour[k % ncities]][d])**2 for d in [0,1] ])) for k in [j,j-1,i,i-1]]) - sum([math.sqrt(sum([(cities[newTour[(k+1) % ncities]][d] - cities[newTour[k % ncities]][d])**2 for d in [0,1] ])) for k in [j,j-1,i,i-1]])) / temperature) > random.random():
             tour = copy.copy(newTour);
-    plt.plot([cities[tour[i % ncities]][0] for i in range(ncities+1)], [cities[tour[i % ncities]][1] for i in range(ncities+1)], 'xb-');
-    plt.show()
+    # plt.plot([cities[tour[i % ncities]][0] for i in range(ncities+1)], [cities[tour[i % ncities]][1] for i in range(ncities+1)], 'xb-');
+    # plt.show()
 
     return tour
 
-indices = travel_salesman_sa([s[0] for s in segments])
-segments = [segments[i] for i in indices]
+# uncomment to travel_salesman
+# indices = travel_salesman_sa([s[0] for s in segments])
+# segments = [segments[i] for i in indices]
 
 # connect to bot
 from cartman import bot
@@ -55,16 +62,28 @@ tick = time.time()
 bot.home()
 bot.set_speed(50000)
 
-def pendown(): bot.goto(z=0)
+def pendown(): bot.goto(z=0.5)
 def penup(): bot.goto(z=3)
 
+from toolchange import ToolChange, dock0
+
+tc = ToolChange(bot, dock0)
+paper_origin = a(90, 240)
 def draw_segment(segment):
+    bot.set_speed(50000)
+    segment = segment.copy()
+    segment+=paper_origin
     penup()
     bot.goto(x=segment[0][0], y=segment[0][1])
     pendown()
     for i in range(1, len(segment)):
         bot.goto(x=segment[i][0], y=segment[i][1])
     penup()
+
+tc.pickup(3)
+pendown();penup()
+bot.goto(z=10)
+bot.goto(x=paper_origin[0], y=paper_origin[1])
 
 # draw outer contour
 draw_segment(np.array([
@@ -76,6 +95,9 @@ draw_segment(np.array([
 # segments
 for s in segments:
     draw_segment(s)
+
+bot.goto(z=10)
+tc.putdown(3)
 
 bot.wait_until_idle()
 

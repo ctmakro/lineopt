@@ -55,9 +55,7 @@ class ToolChange():
         b.goto(x=dock0[0]-xc,y=dock0[1]+yc)
 
 # position of 1st dock
-dock0 = a(330, 4, 32-6-4)
-dock0 = a(336, 13, 20)
-dock0 = a(345, 14, 22)
+dock0 = a(345, 13, 22)
 
 if __name__ == '__main__':
     from cartman import bot
