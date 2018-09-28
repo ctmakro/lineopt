@@ -4,6 +4,7 @@ import numpy as np
 import argparse as ap
 ap = ap.ArgumentParser()
 ap.add_argument('filename')
+ap.add_argument('--tsp', type=int, default=0)
 d = ap.parse_args()
 
 with open(d.filename, 'rb') as f:
@@ -56,11 +57,14 @@ def travel_salesman_sa(list_points):
 
     return tour
 
-nf = []
-for segs in foursegments:
-    indices = travel_salesman_sa([s[0] for s in segs])
-    segs = [segs[i] for i in indices]
-    nf.append(segs)
+if d.tsp!=0:
+    nf = []
+    for segs in foursegments:
+        indices = travel_salesman_sa([s[0] for s in segs])
+        segs = [segs[i] for i in indices]
+        nf.append(segs)
+else:
+    nf = foursegments
 
 # connect to bot
 from cartman import bot
@@ -71,8 +75,9 @@ tick = time.time()
 bot.home()
 bot.set_speed(50000)
 
-def pendown(): bot.goto(z=0.5)
-def penup(): bot.goto(z=5)
+def pendown(): bot.goto(z=-1)
+def penup(): bot.goto(z=4)
+def penhigh(): bot.goto(z=15)
 
 def draw_segment(segment):
     bot.set_speed(50000)
@@ -105,6 +110,11 @@ def oc():
 for idx,segs in enumerate(nf):
     tc.pickup(idx)
     trimming()
+    penhigh()
+
+    bot.set_speed(50000)
+    bot.goto(paper_origin[0], paper_origin[1])
+
     oc()
 
     for s in segs:

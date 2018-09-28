@@ -15,19 +15,21 @@ overshoot = 8
 dock_spacing = 30
 
 class ToolChange():
-    def __init__(self, bot, dock0):
+    def __init__(self, bot, dock0, speed=5000):
         self.bot = bot
         self.dock0 = dock0
 
         # 4 dock in total
         self.docks = [dock0+a(dock_spacing*i,0,0) for i in range(4)]
 
+        self.speed = speed
+
     # pick the pen up from a specific dock
     def pickup(self, dock_index):
         b,d = self.bot, self.docks[dock_index]
 
         self.safepoint()
-        b.set_speed(5000)
+        b.set_speed(self.speed)
         b.goto(z=d[2]) # height for docking
         b.goto(x=d[0], y=d[1]+yc) # proximity
         b.goto(y=d[1]-overshoot) # y- direction, snap
@@ -40,7 +42,7 @@ class ToolChange():
     def putdown(self, dock_index):
         b,d = self.bot, self.docks[dock_index]
         self.safepoint()
-        b.set_speed(5000)
+        b.set_speed(self.speed)
         b.goto(z=d[2]) # height for docking
         b.goto(x=d[0]-xc, y=d[1]+yc)  #proximity
         b.goto(y=d[1]) # y-
@@ -52,10 +54,12 @@ class ToolChange():
     # always do that before everything.
     def safepoint(self):
         b = self.bot
-        b.goto(x=dock0[0]-xc,y=dock0[1]+yc)
+        b.goto(z=self.dock0[2])
+        b.goto(x=self.dock0[0]-xc, y=self.dock0[1]+yc)
 
 # position of 1st dock
 dock0 = a(345, 13, 22)
+dock0 = a(336, 13, 21)
 
 if __name__ == '__main__':
     from cartman import bot
