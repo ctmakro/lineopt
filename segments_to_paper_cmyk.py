@@ -68,24 +68,26 @@ else:
 
 # connect to bot
 from cartman import bot
-bot = bot()
+bot = bot(verbose=False)
 
 import time
 tick = time.time()
 bot.home()
 bot.set_speed(50000)
 
-def pendown(): bot.goto(z=-1)
-def penup(): bot.goto(z=4)
-def penhigh(): bot.goto(z=15)
+def pendown(): bot.goto(z=-44)
+def penup(): bot.goto(z=-44+4)
+def penhigh(): bot.goto(z=-44+15)
 
 def draw_segment(segment):
-    bot.set_speed(50000)
+    bot.set_speed(60000)
     penup()
     bot.goto(x=segment[0][0], y=segment[0][1])
     pendown()
+    bot.set_speed(50000)
     for i in range(1, len(segment)):
         bot.goto(x=segment[i][0], y=segment[i][1])
+    bot.set_speed(60000)
     penup()
 
 # segments
@@ -93,7 +95,10 @@ def draw_segment(segment):
 #     draw_segment(s)
 
 from toolchange import ToolChange, dock0
-tc = ToolChange(bot, dock0)
+
+tc = ToolChange(bot, a(173,13,2),
+    xclearance=25, yclearance=35, overshoot=1,
+    num_docks=4, spacing=80, speed=30000)
 
 def trimming():
     pendown()
@@ -109,16 +114,17 @@ def oc():
 
 for idx,segs in enumerate(nf):
     tc.pickup(idx)
-    trimming()
+    # trimming()
     penhigh()
 
-    bot.set_speed(50000)
+    bot.set_speed(60000)
     bot.goto(paper_origin[0], paper_origin[1])
 
     oc()
 
     for s in segs:
         draw_segment(s)
+
     tc.putdown(idx)
 
 bot.wait_until_idle()

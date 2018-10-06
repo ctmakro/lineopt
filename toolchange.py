@@ -80,7 +80,7 @@ if __name__ == '__main__':
     #
     # b.sync()
 
-    tc = ToolChange(b, a(127,13,-2),
+    tc = ToolChange(b, a(173,13,2),
         xclearance=25, yclearance=35, overshoot=1,
         num_docks=4, spacing=80, speed=10000)
 
