@@ -1,3 +1,5 @@
+# pickup paint from tray
+
 import numpy as np
 a = lambda *k:np.array(k)
 
