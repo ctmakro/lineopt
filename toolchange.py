@@ -71,18 +71,8 @@ if __name__ == '__main__':
     b.home()
     b.set_speed(15000)
 
-    # tc = ToolChange(b, dock0)
-    #
-    # for j in range(4):
-    #     for i in range(4):
-    #         tc.pickup(i)
-    #         tc.putdown(i)
-    #
-    # b.sync()
-
-    tc = ToolChange(b, a(173,13,2),
-        xclearance=25, yclearance=35, overshoot=1,
-        num_docks=4, spacing=80, speed=10000)
+    from cartman_defaults import *
+    tc = DefaultToolChange(b)
 
     for j in range(3):
         for m in range(4):

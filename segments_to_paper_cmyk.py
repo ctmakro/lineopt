@@ -94,11 +94,8 @@ def draw_segment(segment):
 # for s in segments:
 #     draw_segment(s)
 
-from toolchange import ToolChange, dock0
-
-tc = ToolChange(bot, a(173,13,2),
-    xclearance=25, yclearance=35, overshoot=1,
-    num_docks=4, spacing=80, speed=30000)
+from cartman_defaults import *
+tc = DefaultToolChange(b)
 
 def trimming():
     pendown()

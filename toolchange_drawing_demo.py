@@ -3,7 +3,7 @@ pick up a pen of each color and draw a series of circles.
 '''
 
 import numpy as np
-from toolchange import ToolChange, dock0
+from cartman_defaults import *
 
 a = lambda *k:np.array(k)
 
@@ -53,7 +53,7 @@ def square_at(center, radius):
 b.home()
 b.set_speed(10000)
 
-tc = ToolChange(b, dock0)
+tc = DefaultToolChange(b)
 
 for j in range(4): # four colors
     tc.pickup(j)

@@ -31,7 +31,7 @@ class PaintStation:
 
         b.goto(z=d[2]) # into paint
 
-        for i in range(2):
+        for i in range(1):
             b.goto(x=d[0]-r, y=d[1]+r)
             b.goto(x=d[0]-r, y=d[1]-r)
             b.goto(x=d[0]+r, y=d[1]-r)
@@ -44,12 +44,9 @@ if __name__ == '__main__':
     from cartman import bot
     b = bot()
 
-    from toolchange import ToolChange
-    tc = ToolChange(b, a(173,13,2),
-        xclearance=25, yclearance=35, overshoot=1,
-        num_docks=4, spacing=80, speed=10000)
-
-    ps = PaintStation(b, a(234,732,-28), spacing=32, stir_radius=9, num_docks=3, speed=30000)
+    from cartman_defaults import *
+    tc = DefaultToolChange(b)
+    ps = DefaultPaintStation(b)
 
     b.home()
     b.set_speed(30000)
@@ -57,6 +54,8 @@ if __name__ == '__main__':
 
     b.set_speed(30000)
     ps.dip(0)
+    ps.dip(1)
+    ps.dip(2)
 
     b.set_speed(30000)
     tc.putdown(1)
