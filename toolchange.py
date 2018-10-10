@@ -61,9 +61,10 @@ class ToolChange():
         b.goto(z=self.dock0[2])
         b.goto(x=self.dock0[0]-self.xc, y=self.dock0[1]+self.yc)
 
-# position of 1st dock
-dock0 = a(345, 13, 22)
-dock0 = a(336, 13, 21)
+def DefaultToolChange(b):
+    return ToolChange(b, a(173,13,2),
+        xclearance=25, yclearance=45, overshoot=1,
+        num_docks=4, spacing=80, speed=10000)
 
 if __name__ == '__main__':
     from cartman import bot

@@ -6,6 +6,7 @@ b = bot(verbose=False)
 
 tc = DefaultToolChange(b)
 ps = DefaultPaintStation(b)
+ws = DefaultWaterStation(b)
 
 paper = a(132, 291, -29)
 
@@ -42,6 +43,8 @@ b.set_speed(90000)
 
 for i in [75, 55, 35]:
     seg(circle(a(75,75), i)) # in paper coordinate.
+
+ws.wash()
 
 tc.putdown(1)
 
