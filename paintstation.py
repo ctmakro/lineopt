@@ -47,11 +47,18 @@ class WaterStation(PaintStation):
     def wash(self):
         return self.dip(0, times=3)
 
+class SpongeStation(WaterStation):
+    def wipe(self):
+        return self.dip(0, times=3)
+
 def DefaultWaterStation(b):
     return WaterStation(b, a(66,753,-25), stir_radius=15, speed=10000)
 
 def DefaultPaintStation(b):
     return PaintStation(b, a(234,732,-28), spacing=32, stir_radius=9, num_docks=3, speed=10000)
+
+def DefaultSpongeStation(b):
+    return SpongeStation(b, a(165, 753, -15), stir_radius=25, speed=10000)
 
 if __name__ == '__main__':
     from cartman import bot
@@ -61,6 +68,7 @@ if __name__ == '__main__':
     tc = DefaultToolChange(b)
     ps = DefaultPaintStation(b)
     ws = DefaultWaterStation(b)
+    ss = DefaultSpongeStation(b)
 
     b.home()
     b.set_speed(30000)
@@ -70,8 +78,11 @@ if __name__ == '__main__':
     ps.dip(0)
     # ps.dip(1)
     ws.wash()
+    ss.wipe()
+
     ps.dip(2)
     ws.wash()
+    ss.wipe()
 
     b.set_speed(30000)
     tc.putdown(1)
