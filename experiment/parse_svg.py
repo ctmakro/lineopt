@@ -82,7 +82,7 @@ print(xspan, yspan)
 shift = a(minx,miny - yspan)
 flipy = a(1, -1)
 
-scale = .5 # I chose this number to fit in paper
+scale = .5 # I chose this number to fit in A4 paper
 
 for b in bls:
     for s in b.segments:
@@ -122,11 +122,23 @@ def visualize():
 
 visualize()
 
+def measure(s):
+    # return total length of a segment
+    # to determine when to re-dip in paint
+    d = s[1:] - s[:-1]
+    d = d**2
+    d = d.sum(axis=-1)
+    d = np.sqrt(d)
+    return d.sum()
+
+print(measure(a([0,0], [1,1], [0,0])))
+
 def gocart():
 
     b = bot()
 
     ps,ws = DefaultPaintStation(b), DefaultWaterStation(b)
+    ss = DefaultSpongeStation(b)
     tc = DefaultToolChange(b)
 
     paper = a(132, 291, -29)
@@ -145,6 +157,11 @@ def gocart():
             paper_goto(arr[i+1])
         brushup()
 
+    def goodwash():
+        for i in range(3):
+            ws.wash()
+            ss.wipe()
+
     def fa():
         b.set_speed(90000)
 
@@ -152,28 +169,61 @@ def gocart():
 
     fa()
     tc.pickup(1) # thick first
-
     fa()
-    ps.dip(0) # yellow
+    goodwash()
 
+    color_to_dip = 0
     fa()
+    ps.dip(color_to_dip) # yellow
+
+    db = 200
+    budget = db # 200mm worth of paint on brush
+
     for s in bls[0].segments:
-        seg(s)
+        d = measure(s)
+        if budget>d:
+            fa()
+            seg(s)
+            budget-=d
+        else:
+            # no enough budget
+            ps.dip(color_to_dip) # get more paint
+            budget=db
+            fa()
+            seg(s)
+            budget-=d
 
-    ws.wash()
+    fa()
+    goodwash()
 
     fa()
     tc.putdown(1)
     tc.pickup(0) # thin brush
 
-    fa()
-    ps.dip(1) # black
+    color_to_dip=1
 
     fa()
+    goodwash()
+    fa()
+    ps.dip(color_to_dip) # yellow
+
+    budget = db # 100mm worth of paint on brush
+
     for s in bls[1].segments:
-        seg(s)
-
-    ws.wash()
+        d = measure(s)
+        if budget>d:
+            fa()
+            seg(s)
+            budget-=d
+        else:
+            # no enough budget
+            ps.dip(color_to_dip) # get more paint
+            budget=db
+            fa()
+            seg(s)
+            budget-=d
+    fa()
+    goodwash()
 
     fa()
     tc.putdown(0)
