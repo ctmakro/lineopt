@@ -111,8 +111,8 @@ def randomcrop(img, side):
 
     return cropped
 
-vf2t = vggface2(trainlist, train_imgs)
-# vf2s = vggface2(testlist, test_imgs)
+def getvf2t():return vggface2(trainlist, train_imgs)
+def getvf2s():return vggface2(testlist, test_imgs)
 
 def test():
     # print(vf2t.minibatch(5))
@@ -124,6 +124,7 @@ def test():
     #     cv2.imshow('yolo', b)
     #     cv2.waitKey(0)
 
+    vf2t = getvf2t()
     lb, imgs = vf2t.minibatch(batch_size=20, side=64)
     print(lb, imgs.shape)
 

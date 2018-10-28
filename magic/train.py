@@ -1,28 +1,30 @@
 from canton import *
 import tensorflow as tf
-from vggface2 import vf2t
+from vggface2 import getvf2t,getvf2s
+
+vf2t = getvf2s()
 
 def net():
 
     c = Can()
     c.add(Conv2D(3,16, k=3, std=1, stddev=2))
     c.add(Act('relu'))
-    c.add(Conv2D(16,16, k=3, std=1, stddev=2))
+    c.add(Conv2D(16,32, k=3, std=1, stddev=2))
     c.add(Act('relu'))
-    c.add(Conv2D(16,32, k=3, std=2, stddev=2))
+    c.add(Conv2D(32,32, k=5, std=2, stddev=2))
     c.add(Act('relu'))
-    c.add(Conv2D(32,32, k=3, std=2, stddev=2))
+    c.add(Conv2D(32,32, k=5, std=2, stddev=2))
     c.add(Act('relu'))
-    c.add(Conv2D(32,32, k=3, std=2, stddev=2))
+    c.add(Conv2D(32,64, k=5, std=2, stddev=2))
     c.add(Act('relu'))
-    c.add(Conv2D(32,32, k=3, std=2, stddev=2))
+    c.add(Conv2D(64,64, k=5, std=2, stddev=2))
     c.add(Act('relu'))
-    c.add(Conv2D(32,32, k=3, std=2, stddev=2))
+    c.add(Conv2D(64,64, k=5, std=2, stddev=2))
     c.add(Act('relu'))
-    c.add(Conv2D(32,32, k=3, std=1, stddev=2))
+    c.add(Conv2D(64,64, k=3, std=1, stddev=2))
 
     c.add(Lambda(lambda x:tf.reduce_mean(x, axis=[1,2])))
-    c.add(Dense(32, vf2t.n, bias=False))
+    c.add(Dense(64, vf2t.n, bias=True))
 
     c.chain()
 
@@ -37,14 +39,18 @@ def feed_gen():
 
     imgp = imgd/255.
 
-    pred = net(imgd)
+    pred = net(imgp)
 
+    labelh = tf.one_hot(labeld, vf2t.n)
+    
     loss = tf.reduce_mean(
         tf.nn.sparse_softmax_cross_entropy_with_logits(
         labels=labeld, logits=pred)
         )
+    loss = mean_softmax_cross_entropy(pred, labelh)
 
     acc = class_accuracy(pred, labeld)
+    acc = one_hot_accuracy(pred, labelh)
 
     opt = tf.train.AdamOptimizer(
         learning_rate=0.001,
@@ -67,8 +73,12 @@ def feed_gen():
 feed = feed_gen()
 get_session().run(gvi())
 
+from llll import MultithreadedGenerator as MG
+
+mg = MG(lambda:vf2t.minibatch(batch_size=64, side=64), 320, ncpu=40)
+
 def r(ep=100):
     for i in range(ep):
         print('ep({}/{})'.format(i+1, ep))
-        loss, acc = feed(vf2t.minibatch(batch_size=128, side=64))
+        loss, acc = feed(mg.get())
         print('loss {:2.4f} acc {:2.5f}'.format(loss, acc))
