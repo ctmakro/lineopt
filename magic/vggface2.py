@@ -2,7 +2,7 @@ import numpy as np
 import time
 import cv2
 
-vf2root='J:/vggface2'
+vf2root='S:/jared/vggface2'
 
 trainlist = vf2root+'/train_list.txt'
 testlist = vf2root+'/test_list.txt'
@@ -25,30 +25,33 @@ class vggface2:
         self.imgpath = imgpath
 
         def listread(fn):
-            tl = trainlist = readall(fn)
+            # tl = trainlist = readall(fn)
 
-            tl = tl.split('\n')
+
+            # tl = tl.split('\n')
 
             d = {}
             l = []
             n = 0
 
-            for line in tl:
-                line = line.strip()
-                if len(line)==0:
-                    continue
-                else:
-                    identity = int(line[1:1+6])
-
-                    fn = line
-
-                    if identity in d:
-                        d[identity].append(fn)
+            with open(fn, 'r') as f:
+                for line in f:
+                # for line in tl:
+                    line = line.strip()
+                    if len(line)==0:
+                        continue
                     else:
-                        n+=1
-                        k = [fn]
-                        l.append(k)
-                        d[identity] = k
+                        identity = int(line[1:1+6])
+
+                        fn = line
+
+                        if identity in d:
+                            d[identity].append(fn)
+                        else:
+                            n+=1
+                            k = [fn]
+                            l.append(k)
+                            d[identity] = k
 
             # some identities lost their images (broken archive?)
             # for ll in l:
@@ -109,24 +112,33 @@ def randomcrop(img, side):
     if np.random.uniform()>0.5:
         cropped = np.flip(cropped, axis=1)
 
+    # random brightness contrast
+    cropped = cropped.astype(np.float32)
+    cropped = cropped * np.random.uniform(0.2,2,size=(3,))
+    cropped = cropped + np.random.uniform(-0.4,0.4,size=(3,))*255
+
+    cropped = np.random.normal(loc=cropped,scale=np.random.uniform(3,40))
+    cropped = np.clip(cropped, 0, 255)
+    cropped = cropped.astype(np.uint8)
     return cropped
 
 def getvf2t():return vggface2(trainlist, train_imgs)
 def getvf2s():return vggface2(testlist, test_imgs)
 
 def test():
+    vf2t = getvf2t()
+
     # print(vf2t.minibatch(5))
     # for i in range(10):
     #     print(vf2t.randone())
 
-    # for i in range(20):
-    #     a,b = vf2t.randone()
-    #     cv2.imshow('yolo', b)
-    #     cv2.waitKey(0)
+    for i in range(20):
+        a,b = vf2t.randone()
+        cv2.imshow('yolo', b)
+        cv2.waitKey(0)
 
-    vf2t = getvf2t()
-    lb, imgs = vf2t.minibatch(batch_size=20, side=64)
-    print(lb, imgs.shape)
+    # lb, imgs = vf2t.minibatch(batch_size=20, side=64)
+    # print(lb, imgs.shape)
 
 if __name__ == '__main__':
     test()
