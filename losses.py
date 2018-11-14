@@ -12,6 +12,46 @@ def pyramid_of_level(img, levels):
         a.append(smaller)
     return a
 
+from cv2tools import vis, filt
+class LPLoss:
+    @staticmethod
+    def prepare(target):
+        # h,w = target.shape[0:2]
+        # return vis.resize_perfect(target, h/3, w/3, a=1, cubic=False)
+        return cv2.pyrDown(target**2, 2)
+
+    @staticmethod
+    def compare(incoming, prepared):
+        incoming_r = LPLoss.prepare(incoming)
+        # incoming_r = np.sqrt(incoming_r) # gamma correction
+        return np.square((incoming_r - prepared)).mean()
+
+class SobelLoss:
+    @staticmethod
+    def prepare(target):
+        # h,w = target.shape[0:2]
+        # return vis.resize_perfect(target, h/3, w/3, a=1, cubic=False)
+        img = target[:,:,1]
+        sobelx = cv2.Sobel(img,cv2.CV_32F,1,0,ksize=5)
+        sobely = cv2.Sobel(img,cv2.CV_32F,0,1,ksize=5)
+        return sobelx, sobely
+
+    @staticmethod
+    def compare(incoming, prepared):
+        ix,iy = SobelLoss.prepare(incoming)
+        px,py = prepared
+        return (np.abs(ix*px + iy*py)).mean() * -0.005
+
+class SLLoss:
+    @staticmethod
+    def prepare(target):
+        return LPLoss.prepare(target), SobelLoss.prepare(target)
+
+    @staticmethod
+    def compare(incoming, prepared):
+        lpt, spt = prepared
+        return LPLoss.compare(incoming, lpt) + SobelLoss.compare(incoming, spt)
+
 # class that estimates pyramid loss between 2 images.
 class PyramidLoss:
     @staticmethod

@@ -79,11 +79,11 @@ class LineEnv:
         return self.loss_metric.compare(img, self.precomputated)
 
     def get_blank_canvas(self):
-        return np.ones((
+        return np.full((
                 self.target_h,
                 self.target_w,
                 1 if self.grayscale else 3,
-        ), dtype='uint8')*255
+        ),255, dtype='uint8')
 
     def init_segments(self, num_segs=60):
         # num_segs=60
@@ -118,7 +118,9 @@ class LineEnv:
     def calculate_loss(self):
         blank = self.get_blank_canvas() # 8bit
         self.draw_on(blank)
-        return self.compare_with_target((blank/255.).astype('float32')) # float
+        return self.compare_with_target(
+            np.divide(blank, 255., dtype=np.float32)
+        ) # float
 
     # into vector that could be optimized
     def to_vec(self):

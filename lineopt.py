@@ -4,7 +4,11 @@ import numpy as np
 # from scipy.optimize import minimize
 from lineenv import LineEnv, StrokeEnv, LineEnv2, LineEnvCMYK
 
-from losses import PyramidLoss, NNLoss, SSIMLoss, LaplacianPyramidLoss, FaceWeightedPyramidLoss, LabPyramidLoss
+from losses import (
+    PyramidLoss, NNLoss, SSIMLoss,
+    LaplacianPyramidLoss, FaceWeightedPyramidLoss, LabPyramidLoss, LPLoss,
+    SLLoss
+    )
 
 import cProfile
 
@@ -34,21 +38,22 @@ ap.add_argument('filename')
 d = ap.parse_args()
 
 # le = StrokeEnv(grayscale=False)
-le = LineEnvCMYK()
-# le = LineEnv2()
+# le = LineEnvCMYK()
+le = LineEnv2()
 # le.load_image('hjt.jpg', target_width=256)
 le.load_image(d.filename, target_width=256)
 # le.load_image('fruits.jpg', target_width=256)
 # le.load_image('jeff.jpg', target_width=256)
 # le.load_image('forms.jpg', target_width=128)
 # le.load_image('forms.jpg', target_width=64)
-le.init_segments(num_segs=100)
+le.init_segments(num_segs=200)
 
 # le.set_metric(SSIMLoss)
 # le.set_metric(LabPyramidLoss)
 # le.set_metric(FaceWeightedPyramidLoss)
+le.set_metric(SLLoss)
 # le.set_metric(PyramidLoss)
-le.set_metric(LaplacianPyramidLoss)
+# le.set_metric(LaplacianPyramidLoss)
 
 def to_optimize(v):
     le.from_vec(v)
