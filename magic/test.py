@@ -13,7 +13,9 @@ from train import netg
 
 net = netg(8631)
 
-forelayers = net.subcans[0:17]
+nforelayers = 24
+nforelayers = 20
+forelayers = net.subcans[0:nforelayers]
 forenet = Can()
 for k in forelayers: forenet.add(k)
 forenet.chain()
@@ -29,10 +31,10 @@ def jeffdemo():
     jeff = load_image('../jeff.jpg')
 
     h,w = jeff.shape[0:2]
-    jeff = vis.resize_perfect(jeff, h/2, w/2)
+    jeff = vis.resize_perfect(jeff, 192, 192)
     print(jeff.shape)
 
-    vis.show_autoscaled(jeff,600)
+    vis.show_autoscaled(jeff)
 
     jefff = np.divide(jeff,255., dtype=np.float32)
 
@@ -41,7 +43,7 @@ def jeffdemo():
 
     jeffff = np.transpose(jeffff,[2,0,1])
     jeffff.shape+=(1,)
-    vis.show_batch_autoscaled(jeffff*0.5+0.5, 800)
+    vis.show_batch_autoscaled(jeffff*0.5+0.5)
 
     cv2.waitKey(0)
 

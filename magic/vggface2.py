@@ -2,6 +2,8 @@ import numpy as np
 import time
 import cv2
 
+from cv2tools import vis
+
 vf2root='S:/jared/vggface2'
 
 trainlist = vf2root+'/train_list.txt'
@@ -65,8 +67,8 @@ class vggface2:
         self.n, self.l, self.d = listread(self.listfile)
         print(self.n,'identities')
 
-    def randone(self, side=64):
-        index = np.random.choice(self.n)
+    def randone(self, side=64, index=None):
+        index = np.random.choice(self.n) if index is None else index
         imglist = self.l[index]
         imgpath = self.imgpath + np.random.choice(imglist)
 
@@ -82,10 +84,19 @@ class vggface2:
         return index, img
 
     def minibatch(self, batch_size, side=64):
-        mbid, mbim = list(zip(*[self.randone(side=side) for i in range(batch_size)]))
+        mbid,mbim = [],[]
+        mbid2,mbim2 = [],[]
+        for i in range(batch_size//2):
+            index,img = self.randone(side=side)
+            mbid.append(index)
+            mbim.append(img)
 
-        mbid = np.array(mbid)
-        mbim = np.array(mbim)
+            index,img = self.randone(side=side, index=index)
+            mbid2.append(index)
+            mbim2.append(img)
+
+        mbid = np.array(mbid+mbid2)
+        mbim = np.array(mbim+mbim2)
 
         return mbid, mbim
 
@@ -99,7 +110,7 @@ def randomcrop(img, side):
     scale = minside/side
     # assert scale > 1
 
-    cs = chosen_scale = np.random.uniform(scale*.46, scale*.95)
+    cs = chosen_scale = np.random.uniform(scale*.45, scale*.95)
 
     img = vis.resize_perfect(img, h/cs, w/cs, cubic=True)
 
@@ -114,10 +125,10 @@ def randomcrop(img, side):
 
     # random brightness contrast
     cropped = cropped.astype(np.float32)
-    cropped = cropped * np.random.uniform(0.2,2,size=(3,))
+    cropped = cropped * (np.random.uniform(0.6,1.7,size=(1,)) + np.random.uniform(-.4,.4,size=(3,)))
     cropped = cropped + np.random.uniform(-0.4,0.4,size=(3,))*255
 
-    cropped = np.random.normal(loc=cropped,scale=np.random.uniform(3,40))
+    cropped = np.random.normal(loc=cropped,scale=np.random.uniform(3,25))
     cropped = np.clip(cropped, 0, 255)
     cropped = cropped.astype(np.uint8)
     return cropped
@@ -133,8 +144,9 @@ def test():
     #     print(vf2t.randone())
 
     for i in range(20):
-        a,b = vf2t.randone()
-        cv2.imshow('yolo', b)
+        a,b = vf2t.minibatch(20,side=128)
+        # cv2.imshow('yolo', b)
+        vis.show_batch_autoscaled(b)
         cv2.waitKey(0)
 
     # lb, imgs = vf2t.minibatch(batch_size=20, side=64)
