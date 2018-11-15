@@ -323,7 +323,7 @@ def schedule3(): # annealing schedule. worked well
         else:
             t *= 0.9
 
-        if t<0.1: break
+        if t<0.01: break
 
     tt = time.time() - tick
     print(tt,'seconds',c,'generations',tt/c,'s/gen' )
