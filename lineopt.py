@@ -9,7 +9,7 @@ from losses import (
     LaplacianPyramidLoss, FaceWeightedPyramidLoss, LabPyramidLoss, LPLoss,
     SLLoss
     )
-
+import math
 import cProfile
 
 def perf_debug():
@@ -46,7 +46,7 @@ le.load_image(d.filename, target_width=256)
 # le.load_image('jeff.jpg', target_width=256)
 # le.load_image('forms.jpg', target_width=128)
 # le.load_image('forms.jpg', target_width=64)
-le.init_segments(num_segs=200)
+le.init_segments(num_segs=100)
 
 # le.set_metric(SSIMLoss)
 # le.set_metric(LabPyramidLoss)
@@ -58,6 +58,83 @@ le.set_metric(SLLoss)
 def to_optimize(v):
     le.from_vec(v)
     return le.calculate_loss()
+
+b1=None
+b2=None
+# natural gradient
+def minimize_ng(fun, x, iters, cb=None, lr=50, useb=False):
+    global b1,b2
+
+    x = x.copy()
+
+    if useb == False or b1 is None:
+        buffer1 = np.zeros_like(x)
+        buffer2 = np.zeros_like(x)
+    else:
+        buffer1 = b1
+        buffer2 = b2
+
+    noise_level = lr/5
+    # noise_level = 1
+    m1 = 0.95 # momentum
+    km1 = 1-m1
+
+    m2 = 0.95
+    km2 = 1-m2
+
+    for i in range(iters):
+
+        curr_fitness = fun(x)
+
+        noise = np.random.normal(size=x.shape, scale=math.sqrt(noise_level))
+        newx = x + noise
+        new_fitness = fun(newx)
+
+        diff_fitness = curr_fitness - new_fitness
+        # fitness decr -> diff_fitness incr -> move in noise direction
+
+        buffer1 = buffer1*m1 +\
+         (diff_fitness/noise_level * noise) * km1
+
+        # buffer2 = buffer2 * m2 + buffer1 * km2
+        # x = x + buffer2 * lr
+
+        x = x + buffer1 * lr
+
+        if cb is not None:
+            cb(i, x, curr_fitness)
+
+    b1 = buffer1
+    b2 = buffer2
+    return x
+
+def run_ng_opt(iters, lr=50):
+    x = le.to_vec()
+
+    lossrec = None
+    def cb(i,x,loss):
+        nonlocal lossrec
+        lossrec = loss
+        if (i+1) % 50==0:
+            print('({}/{}) lr:{:.4f} loss {:.6f}'.format(i+1, iters, lr, loss))
+            le.from_vec(x)
+            show()
+
+    newx = minimize_ng(to_optimize, x, iters, cb=cb, lr=lr, useb=True)
+    le.from_vec(newx)
+
+    return lossrec
+
+def schedule4():
+    lr = 50
+    loss = 99999999
+    while 1:
+        newloss = run_ng_opt(1000,lr=lr)
+        if newloss >= loss:
+            lr = lr * 0.9
+        loss = newloss
+        if lr < .1:
+            break
 
 # minimization
 def minimize_cem(fun, x, iters,
