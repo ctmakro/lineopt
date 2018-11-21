@@ -6,6 +6,10 @@ from losses import PyramidLoss
 
 from image import artistic_enhance, load_image
 
+import random
+
+ru=random.random
+
 # environment that optimizes lines to match an image.
 class LineEnv:
     def __init__(self, grayscale=False, metric=PyramidLoss, color=(0,0,0)):
@@ -35,8 +39,8 @@ class LineEnv:
         orig = load_image(path, is_filename)
 
         # crop to face region
-        from facial import facecrop
-        orig = facecrop(orig)
+        # from facial import facecrop
+        # orig = facecrop(orig)
 
         if target_width is not None:
             scale = target_width / orig.shape[1]
@@ -130,6 +134,8 @@ class LineEnv:
     def from_vec(self, v):
         vc = v.copy()
         vc.shape = len(vc)//2, 2
+        vc[:,0:1] = np.clip(vc[:,0:1], 0, self.target_w)
+        vc[:,1:2] = np.clip(vc[:,1:2], 0, self.target_h)
         self.segments = np.split(vc, self.indices, axis=0)
 
     def segments_to_pickle(self, filename=None):
@@ -139,6 +145,130 @@ class LineEnv:
         import pickle
         with open(filename, 'wb') as f:
             pickle.dump(self.segments,f)
+
+# one continuous segment, each line show up with probability
+class LineEnv3(LineEnv):
+    def init_segments(self, num_segs=300):
+        self.segments = []
+        self.indices = []
+
+        # pts = np.random.uniform(0,1,size=(num_segs,2)).astype(np.float32)
+
+        radiuses = (np.arange(num_segs)/num_segs)**0.5 * self.target_w * 0.5
+        rad = (np.arange(num_segs)/num_segs)**0.5 * 2* np.pi * 5
+
+        ptx = np.cos(rad) * radiuses + self.target_w*0.5
+        pty = np.sin(rad) * radiuses + self.target_h*0.5
+
+        pts = np.stack([ptx, pty], axis=1).astype(np.float32)
+
+        # print(pts)
+        # self.segments.append(pts*max(self.target_h, self.target_w))
+        self.segments.append(pts)
+
+        self.prob = np.full((num_segs-1,), 0.5, dtype=np.float32)
+
+    def to_vec(self):
+        a = super().to_vec()
+        p = self.prob * 20
+        return np.concatenate([a, p])
+
+    def from_vec(self, v):
+        split = len(v)-len(self.prob)
+        super().from_vec(v[:split])
+        self.prob = np.clip(v[split:]*0.05, 0, 1)
+
+    def draw_on(self, canvas):
+
+        sp = self.prob.tolist()
+        pts = self.segments[0]
+
+        segs = []
+
+        start = 0
+        state = 0
+
+        assert len(sp)+1 ==  len(pts)
+
+        for idx in range(len(sp)):
+            if state == 0: # prev is blank
+                if sp[idx] < ru(): # stroke
+                    start = idx
+                    state = 1
+            else: # prev is stroke
+                if sp[idx] >= ru(): # blank
+                    state = 0
+                    segs.append(pts[start:idx+1])
+
+        cv2.polylines(
+            canvas,
+            [(points*64).astype(np.int32) for points in segs],
+            isClosed = False,
+            # color=(0, 0, 0),
+            color = self.color,
+            thickness=1,
+            lineType=cv2.LINE_AA,
+            shift = 6,
+        )
+
+        self.spp = len(segs) / len(pts)
+
+    def calculate_loss(self):
+        loss = super().calculate_loss()
+        pts = self.segments[0]
+        s = np.square(pts[1:] - pts[:-1])
+        l = np.sqrt(s[:,0] + s[:,1])
+        pen = np.maximum(0, l-15).mean()
+
+        spppen = max(self.spp-0.05, 0)
+
+        cpen = np.square(.5-np.abs(.5-self.prob)).mean() # certainty penalty
+        return loss + pen * 0.01 + spppen * 0.1 + cpen * 1.
+
+# same as LE3 but use shades of grey
+class LineEnv4(LineEnv3):
+    def draw_on(self, canvas):
+        sp = (np.clip(self.prob, 0, 1)*255).astype(np.uint8).tolist()
+        pts = self.segments[0]
+        pts = (pts*64).astype(np.int32).flatten()
+        pts = tuple(pts)
+
+        assert len(sp)+1 == len(pts)//2
+
+        p0 = pts[0:2]
+
+        for idx in range(len(sp)):
+            p = sp[idx]
+            k = idx*2
+            p2 = pts[k+2:k+4]
+
+            cv2.line(
+                canvas,
+                p0,p2,
+                color = (p,p,p),
+                thickness=1,
+                lineType=cv2.LINE_AA,
+                shift = 6,
+            )
+
+            p0 = p2
+
+        # self.spp = len(segs) / len(pts)
+    def calculate_loss(self):
+        loss = LineEnv.calculate_loss(self)
+        pts = self.segments[0]
+        v1 = pts[1:] - pts[:-1]
+        cross = (v1[1:] * v1[:-1]).sum(axis=1)
+        cupen = np.sqrt(np.maximum(5-cross, 0)).mean() # curvature penalty
+
+        s = np.square(v1)
+        l = np.sqrt(s.sum(axis=1))
+        pen = np.maximum(0, l-15).mean()
+
+        # spppen = max(self.spp-0.05, 0)
+
+        cpen = np.square(.5-np.abs(.5-self.prob)).mean() # certainty penalty
+        return loss + pen * 0.01 + cupen*0.01 + cpen * .5 #+ spppen * 0.1
 
 class LineEnv2(LineEnv):
     def init_segments(self, num_segs=300):

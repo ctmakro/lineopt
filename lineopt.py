@@ -2,7 +2,8 @@ import cv2
 from cv2tools import vis,filt
 import numpy as np
 # from scipy.optimize import minimize
-from lineenv import LineEnv, StrokeEnv, LineEnv2, LineEnvCMYK
+from lineenv import (LineEnv, StrokeEnv,
+LineEnv2, LineEnvCMYK, LineEnv3, LineEnv4)
 
 from losses import (
     PyramidLoss, NNLoss, SSIMLoss,
@@ -13,7 +14,8 @@ import math
 import cProfile
 
 def perf_debug():
-    cProfile.run('optimize_for_target(it=50)', sort='tottime')
+    cProfile.run('schedule3()', sort='tottime')
+    # cProfile.run('optimize_for_target(it=50)', sort='tottime')
 
 # exploit parallelism
 # parallel = True
@@ -39,14 +41,15 @@ d = ap.parse_args()
 
 # le = StrokeEnv(grayscale=False)
 # le = LineEnvCMYK()
-le = LineEnv2()
+# le = LineEnv2()
+le = LineEnv4()
 # le.load_image('hjt.jpg', target_width=256)
 le.load_image(d.filename, target_width=256)
 # le.load_image('fruits.jpg', target_width=256)
 # le.load_image('jeff.jpg', target_width=256)
 # le.load_image('forms.jpg', target_width=128)
 # le.load_image('forms.jpg', target_width=64)
-le.init_segments(num_segs=100)
+le.init_segments(num_segs=1000)
 
 # le.set_metric(SSIMLoss)
 # le.set_metric(LabPyramidLoss)
@@ -70,13 +73,14 @@ def minimize_ng(fun, x, iters, cb=None, lr=50, useb=False):
     if useb == False or b1 is None:
         buffer1 = np.zeros_like(x)
         buffer2 = np.zeros_like(x)
+        print('initbuffer')
     else:
         buffer1 = b1
         buffer2 = b2
 
-    noise_level = lr/5
+    noise_level = lr/10
     # noise_level = 1
-    m1 = 0.95 # momentum
+    m1 = 0.99 # momentum
     km1 = 1-m1
 
     m2 = 0.95
@@ -131,7 +135,7 @@ def schedule4():
     while 1:
         newloss = run_ng_opt(1000,lr=lr)
         if newloss >= loss:
-            lr = lr * 0.9
+            lr = lr * 0.98
         loss = newloss
         if lr < .1:
             break
